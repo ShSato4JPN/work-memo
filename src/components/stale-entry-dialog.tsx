@@ -1,10 +1,9 @@
 "use client";
 
 import { format } from "date-fns";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateEntryTimes } from "@/server/actions/timer";
+import { useStaleEntryDialog } from "@/hooks/use-stale-entry-dialog";
 
 export function StaleEntryDialog({
   entryId,
@@ -17,9 +16,8 @@ export function StaleEntryDialog({
   startedAt: Date;
   now: Date;
 }) {
-  const [dismissed, setDismissed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  if (dismissed) return null;
+  const dialog = useStaleEntryDialog({ entryId, startedAt, now });
+  if (dialog.dismissed) return null;
 
   return (
     <div className="border-destructive space-y-3 rounded-lg border p-4">
@@ -31,43 +29,22 @@ export function StaleEntryDialog({
         </p>
       </div>
 
-      <form
-        action={async (formData: FormData) => {
-          const value = String(formData.get("endedAt") ?? "");
-          if (value === "") return;
-          const endedAt = new Date(value);
-          if (endedAt <= startedAt) {
-            setError("終了時刻は開始時刻より後にしてください");
-            return;
-          }
-          setError(null);
-          try {
-            const result = await updateEntryTimes({ entryId, startedAt, endedAt });
-            if (!result.ok) {
-              setError(result.message);
-              return;
-            }
-            setDismissed(true);
-          } catch {
-            setError("保存に失敗しました。もう一度お試しください。");
-          }
-        }}
-        className="flex items-end gap-2"
-      >
+      <form action={dialog.save} className="flex items-end gap-2">
         <Input
           type="datetime-local"
           name="endedAt"
           aria-label="実際の終了時刻"
-          defaultValue={format(now, "yyyy-MM-dd'T'HH:mm")}
+          value={dialog.endValue}
+          onChange={(event) => dialog.setEndValue(event.target.value)}
           required
         />
         <Button type="submit">この時刻で終了にする</Button>
-        <Button type="button" variant="ghost" onClick={() => setDismissed(true)}>
+        <Button type="button" variant="ghost" onClick={dialog.dismiss}>
           このまま続ける
         </Button>
       </form>
 
-      {error && <p className="text-destructive text-sm">{error}</p>}
+      {dialog.error && <p className="text-destructive text-sm">{dialog.error}</p>}
     </div>
   );
 }

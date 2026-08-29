@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { formatDiff, formatDuration } from "@/lib/format";
 import { CategoryPie } from "@/components/category-pie";
 import { DailyStackChart } from "@/components/daily-stack-chart";
 import { getAnalytics, type Period } from "@/server/queries/analytics";
@@ -14,21 +15,6 @@ const PERIODS: { label: string; value: Period }[] = [
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "day" || value === "week" || value === "month";
-}
-
-/** 差分は符号を必ず付ける。「+30分」と「-30分」を見間違えないようにするため */
-function formatDiff(minutes: number): string {
-  const rounded = Math.round(minutes);
-  if (rounded === 0) return "±0分";
-  return rounded > 0 ? `+${formatDuration(rounded)}` : `-${formatDuration(-rounded)}`;
-}
-
-function formatDuration(minutes: number): string {
-  const rounded = Math.round(minutes);
-  if (rounded < 60) return `${rounded}分`;
-  const hours = Math.floor(rounded / 60);
-  const rest = rounded % 60;
-  return rest === 0 ? `${hours}時間` : `${hours}時間${rest}分`;
 }
 
 function Card({ children }: { children: React.ReactNode }) {

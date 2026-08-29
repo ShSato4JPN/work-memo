@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDuration } from "@/lib/format";
+
 /**
  * Recharts が content に渡してくる値のうち、実際に使うものだけを宣言する。
  * ライブラリの型をそのまま受けると必須プロパティが多く、JSX で渡せないため。
@@ -20,14 +22,6 @@ type Props = {
 
 function toMinutes(value: TooltipRow["value"]): number {
   return typeof value === "number" ? value : 0;
-}
-
-function formatDuration(minutes: number): string {
-  const rounded = Math.round(minutes);
-  if (rounded < 60) return `${rounded}分`;
-  const hours = Math.floor(rounded / 60);
-  const rest = rounded % 60;
-  return rest === 0 ? `${hours}時間` : `${hours}時間${rest}分`;
 }
 
 /**

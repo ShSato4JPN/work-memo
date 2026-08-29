@@ -1,18 +1,11 @@
 import Link from "next/link";
+import { formatDuration } from "@/lib/format";
 import { DayTimeline } from "@/components/day-timeline";
 import { StaleEntryDialog } from "@/components/stale-entry-dialog";
 import { TodayLog } from "@/components/today-log";
 import { getTodayView } from "@/server/queries/today";
 
 export const dynamic = "force-dynamic";
-
-function formatDuration(minutes: number): string {
-  const rounded = Math.round(minutes);
-  if (rounded < 60) return `${rounded}分`;
-  const hours = Math.floor(rounded / 60);
-  const rest = rounded % 60;
-  return rest === 0 ? `${hours}時間` : `${hours}時間${rest}分`;
-}
 
 export default async function TodayPage() {
   const now = new Date();

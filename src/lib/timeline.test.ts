@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layoutDay, type TimelineInput } from "./timeline";
+import { groupBlocksByTask, initialScrollLeft, layoutDay, type TimelineInput } from "./timeline";
 
 function input(partial: Partial<TimelineInput> & { startedAt: Date }): TimelineInput {
   return {
@@ -211,5 +211,87 @@ describe("layoutDay", () => {
 
     expect(blocks.every((block) => block.column === 0)).toBe(true);
     expect(blocks.every((block) => block.columnCount === 1)).toBe(true);
+  });
+});
+
+describe("groupBlocksByTask", () => {
+  const day = new Date(2026, 7, 30);
+  const now = new Date(2026, 7, 30, 12, 0);
+
+  function input(
+    id: number,
+    taskId: number,
+    title: string,
+    fromHour: number,
+    toHour: number,
+  ): TimelineInput {
+    return {
+      id,
+      taskId,
+      title,
+      categoryColor: "#4c8df6",
+      startedAt: new Date(2026, 7, 30, fromHour, 0),
+      endedAt: new Date(2026, 7, 30, toHour, 0),
+    };
+  }
+
+  it("同じタスクの記録を1行にまとめ、合計時間を出す", () => {
+    const blocks = layoutDay([input(1, 10, "実装", 9, 10), input(2, 10, "実装", 11, 12)], day, now);
+
+    const rows = groupBlocksByTask(blocks);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].taskId).toBe(10);
+    expect(rows[0].blocks).toHaveLength(2);
+    expect(rows[0].totalMinutes).toBe(120);
+  });
+
+  // 一日を左から右へ読むので、行の並びも最初に触った順にする
+  it("行の順番はその日に最初に触った順になる", () => {
+    const blocks = layoutDay(
+      [input(1, 20, "あとから", 11, 12), input(2, 10, "さきに", 9, 10)],
+      day,
+      now,
+    );
+
+    expect(groupBlocksByTask(blocks).map((row) => row.title)).toEqual(["さきに", "あとから"]);
+  });
+
+  it("記録がなければ行もない", () => {
+    expect(groupBlocksByTask([])).toEqual([]);
+  });
+});
+
+describe("initialScrollLeft", () => {
+  const day = new Date(2026, 7, 30);
+  const now = new Date(2026, 7, 30, 12, 0);
+
+  function blocksFrom(hour: number) {
+    return layoutDay(
+      [
+        {
+          id: 1,
+          taskId: 1,
+          title: "実装",
+          categoryColor: "#4c8df6",
+          startedAt: new Date(2026, 7, 30, hour, 0),
+          endedAt: new Date(2026, 7, 30, hour + 1, 0),
+        },
+      ],
+      day,
+      now,
+    );
+  }
+
+  it("最初の記録の30分手前まで寄せる", () => {
+    expect(initialScrollLeft(blocksFrom(9), 1)).toBe(9 * 60 - 30);
+  });
+
+  it("0時台の記録では左端のまま（負の位置にしない）", () => {
+    expect(initialScrollLeft(blocksFrom(0), 1)).toBe(0);
+  });
+
+  it("記録がなければ左端", () => {
+    expect(initialScrollLeft([], 1)).toBe(0);
   });
 });

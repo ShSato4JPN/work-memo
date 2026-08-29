@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { EntryTimeEditor } from "@/components/entry-time-editor";
+import { formatDuration } from "@/lib/format";
 import type { TodayViewEntry } from "@/server/queries/today";
 
 /**
@@ -9,7 +10,7 @@ import type { TodayViewEntry } from "@/server/queries/today";
  */
 function durationLabel(entry: TodayViewEntry): string {
   if (entry.endedAt === null) return "計測中";
-  return `${Math.round(entry.todayMinutes)}分`;
+  return formatDuration(entry.todayMinutes);
 }
 
 /** 開始が今日でない行は日付まで表示して、今日の作業と読み違えられないようにする */
