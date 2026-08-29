@@ -82,7 +82,7 @@ export function TaskRow({ task }: { task: TaskListItem }) {
           {task.title}
         </span>
         {done && (
-          <span className="bg-primary inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white">
+          <span className="bg-done inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white">
             <span aria-hidden>✓</span>
             完了
           </span>
@@ -135,7 +135,7 @@ export function TaskRow({ task }: { task: TaskListItem }) {
             <form action={updateTaskStatus.bind(null, task.id, "doing")}>
               <button
                 type="submit"
-                className="border-primary text-primary hover:bg-primary focus-visible:ring-primary inline-flex items-center gap-1.5 rounded-full border-2 px-5 py-2 text-sm font-bold transition hover:text-white focus-visible:ring-4 focus-visible:outline-none"
+                className="border-input hover:bg-accent focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full border-2 px-5 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
               >
                 <span aria-hidden>↩</span>
                 取り消し
@@ -170,7 +170,7 @@ export function TaskRow({ task }: { task: TaskListItem }) {
               <form action={updateTaskStatus.bind(null, task.id, "done")}>
                 <button
                   type="submit"
-                  className="bg-primary focus-visible:ring-primary inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
+                  className="bg-done focus-visible:ring-done inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
                 >
                   <span aria-hidden>✓</span>
                   完了

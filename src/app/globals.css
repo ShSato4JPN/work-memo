@@ -11,6 +11,7 @@
   --font-mono: var(--font-rounded);
   --font-heading: var(--font-rounded);
   --color-live: var(--live);
+  --color-done: var(--done);
   --color-live-soft: var(--live-soft);
   --color-rule-strong: var(--rule-strong);
   --color-gauge-track: var(--gauge-track);
@@ -89,6 +90,8 @@
 
   --live: #f2603c;
   --live-soft: #fdeae5;
+  /* 完了は「進める(緑)」「止める(コーラル)」のどちらとも別の色にする */
+  --done: #3f6ee0;
   --rule-strong: #c3cedb;
   --gauge-track: #e3e9f0;
 }
@@ -129,6 +132,7 @@
 
     --live: #ff7a5c;
     --live-soft: #3d2620;
+    --done: #7aa2f7;
     --rule-strong: #55677a;
     --gauge-track: #32404f;
   }
