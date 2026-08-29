@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { taskProgress } from "./task-progress";
+import { taskProgress } from "@/lib/task-progress";
 
 describe("taskProgress", () => {
   it("完了した分と計測中の経過を足す", () => {

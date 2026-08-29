@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { updateTaskStatus } from "./task";
+import { updateTaskStatus } from "@/server/actions/task";
 import {
   createTaskAndStart,
   createTaskOnly,
@@ -8,7 +8,7 @@ import {
   startTimer,
   stopTimer,
   updateEntryTimes,
-} from "./timer";
+} from "@/server/actions/timer";
 
 async function resetDatabase() {
   await prisma.entry.deleteMany();

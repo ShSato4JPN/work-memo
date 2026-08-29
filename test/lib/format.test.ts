@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatClockLabel, formatDiff, formatDuration } from "./format";
+import { formatClock, formatClockLabel, formatDiff, formatDuration } from "@/lib/format";
 
 describe("formatDuration", () => {
   it("60分未満は分だけで書く", () => {

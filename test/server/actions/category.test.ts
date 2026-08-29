@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { deleteCategory } from "./category";
+import { deleteCategory } from "@/server/actions/category";
 
 async function resetDatabase() {
   await prisma.entry.deleteMany();

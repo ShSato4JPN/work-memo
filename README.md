@@ -15,6 +15,21 @@ pnpm dev                         # http://localhost:3000
 
 `prisma/dev.db` が実データ。中身は `pnpm exec prisma studio` で直接確認・編集できる。
 
+## コードの置き場所
+
+```
+src/app         画面（Server Component）
+src/components  描画に徹する。計算も状態も持たない
+src/hooks       状態と副作用（計測の時計、フォーム、Server Action の呼び出し）
+src/lib         副作用のない計算。集計・レイアウト・表記はここに集める
+src/server      Server Actions と DB からの読み出し
+scripts         コマンドラインから使う道具（バックアップ・復元）
+test            テスト。src / scripts と同じ階層構造で置く
+```
+
+テストの対象は `src/lib` の純粋関数と `src/server/actions` のふるまい。
+UI のテストは書かない（見た目は変わりやすく、壊れやすいテストになるため）。
+
 ## その他のコマンド
 
 ```bash

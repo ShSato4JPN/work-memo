@@ -6,7 +6,7 @@ import {
   SNAPSHOT_VERSION,
   sortBackupFileNames,
   type Snapshot,
-} from "./backup-format";
+} from "../../scripts/backup-format";
 
 function snapshot(partial: Partial<Snapshot> = {}): Snapshot {
   return {

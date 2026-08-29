@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { deleteTask, updateTask } from "./task";
-import { startTimer } from "./timer";
+import { deleteTask, updateTask } from "@/server/actions/task";
+import { startTimer } from "@/server/actions/timer";
 
 async function resetDatabase() {
   await prisma.entry.deleteMany();

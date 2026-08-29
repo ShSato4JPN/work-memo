@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { groupBlocksByTask, initialScrollLeft, layoutDay, type TimelineInput } from "./timeline";
+import {
+  groupBlocksByTask,
+  initialScrollLeft,
+  layoutDay,
+  type TimelineInput,
+} from "@/lib/timeline";
 
 function input(partial: Partial<TimelineInput> & { startedAt: Date }): TimelineInput {
   return {

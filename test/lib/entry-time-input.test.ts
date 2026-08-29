@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEntryTimeInput } from "./entry-time-input";
+import { parseEntryTimeInput } from "@/lib/entry-time-input";
 
 describe("parseEntryTimeInput", () => {
   it("開始と終了が揃っていれば Date に変換する", () => {

@@ -7,7 +7,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+    // テストは src と並べず test/ にまとめる。src 側の構成をそのまま写した階層にする
+    include: ["test/**/*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
     env: { DATABASE_URL: "file:./prisma/test.db" },
     fileParallelism: false,

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { minutesOnDate, splitEntryByDay, type EntryLike } from "./aggregate";
-import { sumByCategory, taskActualMinutes, type CategoryLike, type TaskLike } from "./aggregate";
+import { minutesOnDate, splitEntryByDay, type EntryLike } from "@/lib/aggregate";
+import {
+  sumByCategory,
+  taskActualMinutes,
+  type CategoryLike,
+  type TaskLike,
+} from "@/lib/aggregate";
 import {
   averageFocusMin,
   dailyTotals,
@@ -8,7 +13,7 @@ import {
   estimateSummary,
   unestimatedWork,
   unionMinutes,
-} from "./aggregate";
+} from "@/lib/aggregate";
 
 function entry(partial: Partial<EntryLike> & { startedAt: Date }): EntryLike {
   return {
