@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String
+  sortOrder Int      @default(0) @map("sort_order")
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  tasks     Task[]
+
+  @@map("categories")
+}
+
+model Task {
+  id           Int       @id @default(autoincrement())
+  title        String    @unique
+  categoryId   Int       @map("category_id")
+  estimateMin  Int?      @map("estimate_min")
+  status       String    @default("todo")
+  archived     Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  completedAt  DateTime? @map("completed_at")
+  category     Category  @relation(fields: [categoryId], references: [id])
+  entries      Entry[]
+
+  @@index([categoryId])
+  @@map("tasks")
+}
+
+model Entry {
+  id            Int       @id @default(autoincrement())
+  taskId        Int       @map("task_id")
+  startedAt     DateTime  @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  parentEntryId Int?      @map("parent_entry_id")
+  note          String?
+  task          Task      @relation(fields: [taskId], references: [id])
+  parentEntry   Entry?    @relation("Interruption", fields: [parentEntryId], references: [id])
+  children      Entry[]   @relation("Interruption")
+
+  @@index([startedAt])
+  @@index([taskId])
+  @@map("entries")
+}
