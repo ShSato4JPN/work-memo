@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { updateTaskStatus } from "./task";
 import {
   createTaskAndStart,
   createTaskOnly,
@@ -174,6 +175,40 @@ describe("タイマー操作", () => {
     expect(result.ok).toBe(false);
     expect(result.ok === false && result.message).toBe("タスク名を入力してください");
     expect(await prisma.task.count()).toBe(0);
+  });
+
+  it("完了にすると、計測中だった場合はその計測も終了する", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+    });
+
+    await startTimer(task.id);
+    await updateTaskStatus(task.id, "done");
+
+    expect(await getRunningEntry(task.id)).toBeNull();
+    const updated = await prisma.task.findUniqueOrThrow({ where: { id: task.id } });
+    expect(updated.status).toBe("done");
+    expect(updated.completedAt).not.toBeNull();
+  });
+
+  it("完了を取り消すと doing に戻り、completedAt が消える（計測は始まらない）", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: {
+        title: "完了済みタスク",
+        categoryId: category.id,
+        status: "done",
+        completedAt: new Date(2026, 7, 28, 18, 0),
+      },
+    });
+
+    await updateTaskStatus(task.id, "doing");
+
+    const updated = await prisma.task.findUniqueOrThrow({ where: { id: task.id } });
+    expect(updated.status).toBe("doing");
+    expect(updated.completedAt).toBeNull();
+    expect(await getRunningEntry(task.id)).toBeNull();
   });
 
   it("startTimer は done のタスクを doing に戻すとき completedAt も消す", async () => {

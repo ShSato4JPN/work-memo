@@ -25,8 +25,6 @@ export default async function TasksPage({
 
   return (
     <main className="mx-auto max-w-4xl space-y-5 px-4 py-4 pb-16">
-      <h1 className="px-2 text-xl font-bold">タスク</h1>
-
       <nav aria-label="絞り込み">
         <ul className="flex flex-wrap gap-2">
           {FILTERS.map((item) => {

@@ -115,39 +115,51 @@ export function TaskRow({ task }: { task: TaskListItem }) {
         </span>
 
         <span className="ml-auto flex shrink-0 items-center gap-2">
-          {running ? (
-            <form action={stopTimer.bind(null, task.id)}>
+          {done ? (
+            // 完了したタスクは開始できない。やり直したいときは取り消して進行中に戻す
+            <form action={updateTaskStatus.bind(null, task.id, "doing")}>
               <button
                 type="submit"
-                className="bg-live focus-visible:ring-live inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
+                className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-5 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
               >
-                <span aria-hidden className="size-2.5 rounded-[2px] bg-white" />
-                停止
+                取り消し
               </button>
             </form>
           ) : (
-            <form action={startTimer.bind(null, task.id)}>
-              <button
-                type="submit"
-                className="bg-primary focus-visible:ring-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
-              >
-                <span
-                  aria-hidden
-                  className="border-y-[5px] border-l-[8px] border-y-transparent border-l-white"
-                />
-                開始
-              </button>
-            </form>
-          )}
-          {!done && (
-            <form action={updateTaskStatus.bind(null, task.id, "done")}>
-              <button
-                type="submit"
-                className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
-              >
-                完了にする
-              </button>
-            </form>
+            <>
+              {running ? (
+                <form action={stopTimer.bind(null, task.id)}>
+                  <button
+                    type="submit"
+                    className="bg-live focus-visible:ring-live inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
+                  >
+                    <span aria-hidden className="size-2.5 rounded-[2px] bg-white" />
+                    停止
+                  </button>
+                </form>
+              ) : (
+                <form action={startTimer.bind(null, task.id)}>
+                  <button
+                    type="submit"
+                    className="bg-primary focus-visible:ring-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
+                  >
+                    <span
+                      aria-hidden
+                      className="border-y-[5px] border-l-[8px] border-y-transparent border-l-white"
+                    />
+                    開始
+                  </button>
+                </form>
+              )}
+              <form action={updateTaskStatus.bind(null, task.id, "done")}>
+                <button
+                  type="submit"
+                  className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
+                >
+                  完了にする
+                </button>
+              </form>
+            </>
           )}
         </span>
       </div>

@@ -27,13 +27,15 @@ export async function getTaskList(
 ): Promise<TaskListItem[]> {
   // archived は「一覧の表示から隠すため」だけに使う。集計（分析画面・今日の合計）は
   // アーカイブ済みタスクの時間も保持する。
+  // 並び順は作成日時で固定する。開始・停止のたびに行が動くと、
+  // 押したい行を見失って操作しづらくなるため、計測状態では並べ替えない。
   const tasks = await prisma.task.findMany({
     where: { archived: false, ...(status ? { status } : {}) },
     include: { category: true, entries: true },
     orderBy: { createdAt: "desc" },
   });
 
-  const items = tasks.map((task) => {
+  return tasks.map((task) => {
     const finished = task.entries.filter((entry) => entry.endedAt !== null);
     const actuals = taskActualMinutes(
       finished.map((entry) => ({
@@ -66,13 +68,5 @@ export async function getTaskList(
       lastWorkedAt,
       runningSince,
     };
-  });
-
-  // 計測中のタスクを先頭に集める。並行計測では「いま動いているもの」が複数あるため、
-  // 一覧の上で一望できることが操作のしやすさに直結する。
-  return items.sort((a, b) => {
-    if (a.runningSince && !b.runningSince) return -1;
-    if (!a.runningSince && b.runningSince) return 1;
-    return 0;
   });
 }
