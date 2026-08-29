@@ -18,6 +18,8 @@ export async function getTaskList(
   status?: TaskStatus,
   now: Date = new Date(),
 ): Promise<TaskListItem[]> {
+  // archived は「一覧の表示から隠すため」だけに使う。集計（分析画面・今日の合計）は
+  // アーカイブ済みタスクの時間も保持する。
   const tasks = await prisma.task.findMany({
     where: { archived: false, ...(status ? { status } : {}) },
     include: { category: true, entries: true },

@@ -43,7 +43,10 @@ export async function getAnalytics(period: Period, now: Date = new Date()): Prom
       where: { startedAt: { lte: to }, OR: [{ endedAt: null }, { endedAt: { gte: from } }] },
       include: { task: true },
     }),
-    prisma.category.findMany({ where: { archived: false }, orderBy: { sortOrder: "asc" } }),
+    // アーカイブ済みカテゴリも集計対象に含める。archived は選択肢から隠すためだけのフラグで、
+    // 過去の集計は保持する（設計書 DDL）。ここで絞ると合計時間だけが減り、
+    // 割り込み回数・平均継続時間・見積もり表と母集団が食い違う。
+    prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
 
   const entries = rawEntries.map((entry) => ({
@@ -54,6 +57,7 @@ export async function getAnalytics(period: Period, now: Date = new Date()): Prom
     parentEntryId: entry.parentEntryId,
   }));
 
+  // タスクも archived で絞らない（I2 と同じ方針：archived は一覧の表示から隠すためだけに使う）
   const tasks = [...new Map(rawEntries.map((entry) => [entry.task.id, entry.task])).values()].map(
     (task) => ({
       id: task.id,

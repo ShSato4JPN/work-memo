@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitEntryByDay, type EntryLike } from "./aggregate";
+import { minutesOnDate, splitEntryByDay, type EntryLike } from "./aggregate";
 import { sumByCategory, taskActualMinutes, type CategoryLike, type TaskLike } from "./aggregate";
 import { averageFocusMin, countInterruptions, dailyTotals, estimateComparisons } from "./aggregate";
 
@@ -50,6 +50,53 @@ describe("splitEntryByDay", () => {
   it("開始直後で経過0分なら空配列を返す", () => {
     const at = new Date(2026, 7, 29, 9, 0);
     expect(splitEntryByDay(entry({ startedAt: at, endedAt: null }), at)).toEqual([]);
+  });
+
+  it("endedAt が startedAt より前の逆転データは空配列を返す（0分として扱う契約）", () => {
+    const result = splitEntryByDay(
+      entry({
+        startedAt: new Date(2026, 7, 29, 10, 0),
+        endedAt: new Date(2026, 7, 29, 9, 0),
+      }),
+      new Date(2026, 7, 29, 12, 0),
+    );
+    expect(result).toEqual([]);
+  });
+});
+
+describe("minutesOnDate", () => {
+  it("日を跨ぐエントリは、その日に属する分だけを返す（ログ行と合計を一致させる）", () => {
+    const crossMidnight = entry({
+      startedAt: new Date(2026, 7, 29, 23, 30),
+      endedAt: new Date(2026, 7, 30, 0, 30),
+    });
+    const now = new Date(2026, 7, 30, 1, 0);
+
+    expect(minutesOnDate(crossMidnight, "2026-08-29", now)).toBe(30);
+    expect(minutesOnDate(crossMidnight, "2026-08-30", now)).toBe(30);
+  });
+
+  it("その日に属さないエントリは0分を返す", () => {
+    expect(
+      minutesOnDate(
+        entry({
+          startedAt: new Date(2026, 7, 29, 9, 0),
+          endedAt: new Date(2026, 7, 29, 10, 0),
+        }),
+        "2026-08-30",
+        new Date(2026, 7, 30, 1, 0),
+      ),
+    ).toBe(0);
+  });
+
+  it("計測中のエントリは now までのうち、その日に属する分を返す", () => {
+    expect(
+      minutesOnDate(
+        entry({ startedAt: new Date(2026, 7, 29, 23, 30), endedAt: null }),
+        "2026-08-30",
+        new Date(2026, 7, 30, 0, 15),
+      ),
+    ).toBe(15);
   });
 });
 

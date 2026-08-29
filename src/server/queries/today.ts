@@ -1,6 +1,6 @@
 import { differenceInHours, endOfDay, startOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
-import { sumByCategory, toDateKey, type CategoryTotal } from "@/lib/aggregate";
+import { minutesOnDate, sumByCategory, toDateKey, type CategoryTotal } from "@/lib/aggregate";
 
 export type TodayViewEntry = {
   id: number;
@@ -11,6 +11,10 @@ export type TodayViewEntry = {
   startedAt: Date;
   endedAt: Date | null;
   isInterruption: boolean;
+  /** このエントリのうち「今日」に属する分数。今日の合計と必ず一致する */
+  todayMinutes: number;
+  /** 開始が今日ではない（＝日を跨いで続いてきた）エントリかどうか */
+  startedOnEarlierDay: boolean;
 };
 
 export type TodayView = {
@@ -44,13 +48,17 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
       include: { task: { include: { category: true } } },
       orderBy: { startedAt: "asc" },
     }),
-    prisma.category.findMany({ where: { archived: false }, orderBy: { sortOrder: "asc" } }),
+    // 集計には全カテゴリを渡す。archived は「選択肢から隠すだけ」で過去集計は保持する（設計書 DDL）
+    prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
+    // Start パネルの選択肢。archived なタスクは選択肢から隠すだけで、集計（上の entries）には含まれる
     prisma.task.findMany({
       where: { archived: false, status: { in: ["todo", "doing"] } },
       include: { category: true },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
   ]);
+
+  const dateKey = toDateKey(now);
 
   const entries: TodayViewEntry[] = rawEntries.map((entry) => ({
     id: entry.id,
@@ -61,11 +69,21 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
     startedAt: entry.startedAt,
     endedAt: entry.endedAt,
     isInterruption: entry.parentEntryId !== null,
+    todayMinutes: minutesOnDate(
+      {
+        id: entry.id,
+        taskId: entry.taskId,
+        startedAt: entry.startedAt,
+        endedAt: entry.endedAt,
+        parentEntryId: entry.parentEntryId,
+      },
+      dateKey,
+      now,
+    ),
+    startedOnEarlierDay: toDateKey(entry.startedAt) !== dateKey,
   }));
 
   const runningRaw = rawEntries.find((entry) => entry.endedAt === null);
-
-  const dateKey = toDateKey(now);
   const categoryTotals = sumByCategory(
     rawEntries.map((entry) => ({
       id: entry.id,
@@ -114,11 +132,14 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
       title: task.title,
       categoryName: task.category.name,
     })),
-    categories: categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      color: category.color,
-    })),
+    // Start パネルの選択肢だけは archived を除く
+    categories: categories
+      .filter((category) => !category.archived)
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        color: category.color,
+      })),
     staleRunning,
   };
 }

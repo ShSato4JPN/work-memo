@@ -39,6 +39,16 @@ export function splitEntryByDay(entry: EntryLike, now: Date): DaySlice[] {
   return slices;
 }
 
+/**
+ * エントリのうち、指定日（ローカルタイムの 'yyyy-MM-dd'）に属する分数。
+ * 日を跨ぐエントリで「合計に計上された分」と「行に表示する分」を一致させるために使う。
+ */
+export function minutesOnDate(entry: EntryLike, dateKey: string, now: Date): number {
+  return splitEntryByDay(entry, now)
+    .filter((slice) => slice.date === dateKey)
+    .reduce((sum, slice) => sum + slice.minutes, 0);
+}
+
 export type TaskLike = {
   id: number;
   title: string;
