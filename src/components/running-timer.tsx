@@ -57,7 +57,9 @@ export function RunningTimer({
         <p className="truncate font-medium">{title}</p>
         <p className="text-muted-foreground text-sm">{categoryName}</p>
       </div>
-      <p className="font-mono text-3xl tabular-nums">{label}</p>
+      <p className="font-mono text-3xl tabular-nums" suppressHydrationWarning>
+        {label}
+      </p>
       {isTooLong && (
         <p className="text-destructive text-sm">
           {WARN_THRESHOLD_MIN / 60}時間を超えています。Stop 忘れではありませんか？

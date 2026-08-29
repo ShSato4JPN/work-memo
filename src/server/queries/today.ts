@@ -36,7 +36,8 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
   const [rawEntries, categories, tasks] = await Promise.all([
     prisma.entry.findMany({
       where: {
-        OR: [{ startedAt: { gte: from, lte: to } }, { endedAt: null }],
+        startedAt: { lte: to },
+        OR: [{ endedAt: null }, { endedAt: { gte: from } }],
       },
       include: { task: { include: { category: true } } },
       orderBy: { startedAt: "asc" },

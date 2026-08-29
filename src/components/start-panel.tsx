@@ -59,6 +59,7 @@ export function StartPanel({
         <div className="flex gap-2">
           <select
             name="categoryId"
+            aria-label="カテゴリ"
             className="border-input h-9 flex-1 rounded-md border px-3 text-sm"
             required
           >
