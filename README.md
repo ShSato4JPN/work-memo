@@ -38,6 +38,24 @@ pnpm lint    # oxlint（ESLint は使わない）
 pnpm format  # oxfmt（Prettier は使わない）
 ```
 
+## CI
+
+`main` への push と Pull Request で `.github/workflows/ci.yml` が走る。
+
+| ジョブ           | 内容                                                         |
+| ---------------- | ------------------------------------------------------------ |
+| `verify`         | lint / フォーマット確認 / 型チェック / テスト / ビルド       |
+| `backup-restore` | 実際に DB を作り、バックアップ → 全消し → 復元を一往復させる |
+
+`.env` はコミットしていないので、CI では `DATABASE_URL` を環境変数で渡す
+（`prisma.config.ts` は `.env` が無くても動く）。
+
+手元で同じ確認をするなら:
+
+```bash
+pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build
+```
+
 ## バックアップと復元
 
 記録は `prisma/dev.db` というファイル1つに入っているので、消えるときは丸ごと消える。

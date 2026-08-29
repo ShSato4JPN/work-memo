@@ -1,6 +1,9 @@
+import { existsSync } from "node:fs";
 import { defineConfig, env } from "prisma/config";
 
-process.loadEnvFile(".env");
+// .env は開発者の手元にしかない（gitignore 済み）。CI やコンテナでは環境変数が
+// 直接渡されるので、ファイルが無いことを失敗にしない。
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

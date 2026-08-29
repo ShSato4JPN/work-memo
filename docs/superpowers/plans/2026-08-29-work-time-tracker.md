@@ -26,34 +26,36 @@
 
 ## File Structure
 
-| パス | 責務 |
-|---|---|
-| `prisma/schema.prisma` | データモデル定義 |
-| `prisma/migrations/**` | マイグレーション。部分ユニークインデックスは生 SQL を手で追記する |
-| `prisma/seed.ts` | カテゴリ5件の初期投入 |
-| `src/lib/prisma.ts` | PrismaClient のシングルトン |
-| `src/lib/aggregate.ts` | **DB に触らない純粋関数**。日跨ぎ分割・カテゴリ別集計・割り込み集計・見積もり比 |
-| `src/lib/aggregate.test.ts` | 上記のユニットテスト |
-| `src/server/actions/timer.ts` | `startTimer` / `stopTimer` / `createTaskAndStart` / `updateEntryTimes` |
-| `src/server/actions/task.ts` | `createTask` / `updateTaskStatus` |
-| `src/server/queries/today.ts` | 今日の画面が必要とするデータ取得 |
-| `src/server/queries/tasks.ts` | タスク一覧（実績合計・最終作業日つき） |
-| `src/server/queries/analytics.ts` | 期間集計。`aggregate.ts` に entries を渡すだけ |
-| `src/app/page.tsx` | 今日の画面 |
-| `src/app/tasks/page.tsx` | タスク一覧 |
-| `src/app/analytics/page.tsx` | 分析 |
-| `src/components/` | 画面固有のコンポーネント |
-| `src/components/ui/` | shadcn/ui の生成物。手で編集しない |
+| パス                              | 責務                                                                            |
+| --------------------------------- | ------------------------------------------------------------------------------- |
+| `prisma/schema.prisma`            | データモデル定義                                                                |
+| `prisma/migrations/**`            | マイグレーション。部分ユニークインデックスは生 SQL を手で追記する               |
+| `prisma/seed.ts`                  | カテゴリ5件の初期投入                                                           |
+| `src/lib/prisma.ts`               | PrismaClient のシングルトン                                                     |
+| `src/lib/aggregate.ts`            | **DB に触らない純粋関数**。日跨ぎ分割・カテゴリ別集計・割り込み集計・見積もり比 |
+| `src/lib/aggregate.test.ts`       | 上記のユニットテスト                                                            |
+| `src/server/actions/timer.ts`     | `startTimer` / `stopTimer` / `createTaskAndStart` / `updateEntryTimes`          |
+| `src/server/actions/task.ts`      | `createTask` / `updateTaskStatus`                                               |
+| `src/server/queries/today.ts`     | 今日の画面が必要とするデータ取得                                                |
+| `src/server/queries/tasks.ts`     | タスク一覧（実績合計・最終作業日つき）                                          |
+| `src/server/queries/analytics.ts` | 期間集計。`aggregate.ts` に entries を渡すだけ                                  |
+| `src/app/page.tsx`                | 今日の画面                                                                      |
+| `src/app/tasks/page.tsx`          | タスク一覧                                                                      |
+| `src/app/analytics/page.tsx`      | 分析                                                                            |
+| `src/components/`                 | 画面固有のコンポーネント                                                        |
+| `src/components/ui/`              | shadcn/ui の生成物。手で編集しない                                              |
 
 ---
 
 ## Task 1: プロジェクト初期化
 
 **Files:**
+
 - Create: `package.json`, `tsconfig.json`, `next.config.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css`
 - Create: `.oxlintrc.json`, `vitest.config.ts`, `src/lib/smoke.test.ts`, `.gitignore`
 
 **Interfaces:**
+
 - Consumes: なし
 - Produces: `npm run dev` / `npm run lint` / `npm run format` / `npm test` の4コマンド。パスエイリアス `@/*` → `src/*`
 
@@ -207,10 +209,12 @@ git commit -m "chore: Next.js + oxlint + oxfmt + Vitest でプロジェクトを
 ## Task 2: Prisma スキーマとマイグレーション
 
 **Files:**
+
 - Create: `prisma/schema.prisma`, `prisma/seed.ts`, `src/lib/prisma.ts`, `.env`
 - Modify: `package.json`（`prisma.seed` 設定を追加）
 
 **Interfaces:**
+
 - Consumes: Task 1 の `@/*` エイリアス
 - Produces:
   - `import { prisma } from "@/lib/prisma"` — PrismaClient のシングルトン
@@ -416,12 +420,15 @@ git commit -m "feat: Prisma スキーマとマイグレーション、カテゴ�
 このタスクがアプリの心臓部であり、最もバグりやすい。DB に一切触らない純粋関数として書き、テストを厚くする。
 
 **Files:**
+
 - Create: `src/lib/aggregate.ts`, `src/lib/aggregate.test.ts`
 - Delete: `src/lib/smoke.ts`, `src/lib/smoke.test.ts`（Task 1 の足場なので不要になる）
 
 **Interfaces:**
+
 - Consumes: `date-fns`
 - Produces（後続タスクはこの型と関数名に依存する）:
+
   ```ts
   type EntryLike = { id: number; taskId: number; startedAt: Date; endedAt: Date | null; parentEntryId: number | null };
   type TaskLike = { id: number; title: string; categoryId: number; estimateMin: number | null };
@@ -590,10 +597,26 @@ const TASKS: TaskLike[] = [
 describe("sumByCategory", () => {
   it("タスク経由でカテゴリ別に合計し、多い順に並べる", () => {
     const entries: EntryLike[] = [
-      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 10, 0) }),
-      entry({ id: 2, taskId: 20, startedAt: new Date(2026, 7, 29, 10, 0), endedAt: new Date(2026, 7, 29, 12, 0) }),
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 10, 0),
+      }),
+      entry({
+        id: 2,
+        taskId: 20,
+        startedAt: new Date(2026, 7, 29, 10, 0),
+        endedAt: new Date(2026, 7, 29, 12, 0),
+      }),
     ];
-    const result = sumByCategory(entries, TASKS, CATEGORIES, { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 13, 0));
+    const result = sumByCategory(
+      entries,
+      TASKS,
+      CATEGORIES,
+      { from: "2026-08-29", to: "2026-08-29" },
+      new Date(2026, 7, 29, 13, 0),
+    );
     expect(result).toEqual([
       { categoryId: 2, name: "調査", color: "#f59e0b", minutes: 120 },
       { categoryId: 1, name: "開発", color: "#2563eb", minutes: 60 },
@@ -602,14 +625,31 @@ describe("sumByCategory", () => {
 
   it("期間外のスライスは含めない", () => {
     const entries: EntryLike[] = [
-      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 28, 23, 30), endedAt: new Date(2026, 7, 29, 0, 30) }),
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 28, 23, 30),
+        endedAt: new Date(2026, 7, 29, 0, 30),
+      }),
     ];
-    const result = sumByCategory(entries, TASKS, CATEGORIES, { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 1, 0));
+    const result = sumByCategory(
+      entries,
+      TASKS,
+      CATEGORIES,
+      { from: "2026-08-29", to: "2026-08-29" },
+      new Date(2026, 7, 29, 1, 0),
+    );
     expect(result).toEqual([{ categoryId: 1, name: "開発", color: "#2563eb", minutes: 30 }]);
   });
 
   it("合計0のカテゴリは返さない", () => {
-    const result = sumByCategory([], TASKS, CATEGORIES, { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 1, 0));
+    const result = sumByCategory(
+      [],
+      TASKS,
+      CATEGORIES,
+      { from: "2026-08-29", to: "2026-08-29" },
+      new Date(2026, 7, 29, 1, 0),
+    );
     expect(result).toEqual([]);
   });
 });
@@ -617,8 +657,18 @@ describe("sumByCategory", () => {
 describe("taskActualMinutes", () => {
   it("タスクごとの実績合計を返す", () => {
     const entries: EntryLike[] = [
-      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 10, 0) }),
-      entry({ id: 2, taskId: 10, startedAt: new Date(2026, 7, 29, 11, 0), endedAt: new Date(2026, 7, 29, 11, 30) }),
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 10, 0),
+      }),
+      entry({
+        id: 2,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 11, 0),
+        endedAt: new Date(2026, 7, 29, 11, 30),
+      }),
     ];
     const result = taskActualMinutes(entries, new Date(2026, 7, 29, 12, 0));
     expect(result.get(10)).toBe(90);
@@ -686,7 +736,10 @@ export function sumByCategory(
 
     for (const slice of splitEntryByDay(entry, now)) {
       if (!isInRange(slice.date, range)) continue;
-      minutesByCategoryId.set(categoryId, (minutesByCategoryId.get(categoryId) ?? 0) + slice.minutes);
+      minutesByCategoryId.set(
+        categoryId,
+        (minutesByCategoryId.get(categoryId) ?? 0) + slice.minutes,
+      );
     }
   }
 
@@ -724,9 +777,26 @@ import { averageFocusMin, countInterruptions, dailyTotals, estimateComparisons }
 describe("countInterruptions", () => {
   it("parentEntryId を持つエントリを期間内で数える", () => {
     const entries: EntryLike[] = [
-      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 9, 30) }),
-      entry({ id: 2, taskId: 20, startedAt: new Date(2026, 7, 29, 9, 30), endedAt: new Date(2026, 7, 29, 10, 0), parentEntryId: 1 }),
-      entry({ id: 3, taskId: 20, startedAt: new Date(2026, 7, 30, 9, 30), endedAt: new Date(2026, 7, 30, 10, 0), parentEntryId: 1 }),
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 9, 30),
+      }),
+      entry({
+        id: 2,
+        taskId: 20,
+        startedAt: new Date(2026, 7, 29, 9, 30),
+        endedAt: new Date(2026, 7, 29, 10, 0),
+        parentEntryId: 1,
+      }),
+      entry({
+        id: 3,
+        taskId: 20,
+        startedAt: new Date(2026, 7, 30, 9, 30),
+        endedAt: new Date(2026, 7, 30, 10, 0),
+        parentEntryId: 1,
+      }),
     ];
     expect(countInterruptions(entries, { from: "2026-08-29", to: "2026-08-29" })).toBe(1);
     expect(countInterruptions(entries, { from: "2026-08-29", to: "2026-08-30" })).toBe(2);
@@ -736,14 +806,32 @@ describe("countInterruptions", () => {
 describe("averageFocusMin", () => {
   it("期間内に開始したエントリの平均継続時間を返す", () => {
     const entries: EntryLike[] = [
-      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 10, 0) }),
-      entry({ id: 2, taskId: 10, startedAt: new Date(2026, 7, 29, 10, 0), endedAt: new Date(2026, 7, 29, 10, 30) }),
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 10, 0),
+      }),
+      entry({
+        id: 2,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 10, 0),
+        endedAt: new Date(2026, 7, 29, 10, 30),
+      }),
     ];
-    expect(averageFocusMin(entries, { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 11, 0))).toBe(45);
+    expect(
+      averageFocusMin(
+        entries,
+        { from: "2026-08-29", to: "2026-08-29" },
+        new Date(2026, 7, 29, 11, 0),
+      ),
+    ).toBe(45);
   });
 
   it("対象エントリがなければ0を返す", () => {
-    expect(averageFocusMin([], { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 11, 0))).toBe(0);
+    expect(
+      averageFocusMin([], { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 11, 0)),
+    ).toBe(0);
   });
 });
 
@@ -754,11 +842,28 @@ describe("estimateComparisons", () => {
       { id: 20, title: "見積もりなしタスク", categoryId: 1, estimateMin: null },
     ];
     const entries: EntryLike[] = [
-      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 10, 30) }),
-      entry({ id: 2, taskId: 20, startedAt: new Date(2026, 7, 29, 11, 0), endedAt: new Date(2026, 7, 29, 12, 0) }),
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 10, 30),
+      }),
+      entry({
+        id: 2,
+        taskId: 20,
+        startedAt: new Date(2026, 7, 29, 11, 0),
+        endedAt: new Date(2026, 7, 29, 12, 0),
+      }),
     ];
     expect(estimateComparisons(tasks, entries, new Date(2026, 7, 29, 13, 0))).toEqual([
-      { taskId: 10, title: "認証機能の実装", estimateMin: 60, actualMin: 90, diffMin: 30, ratio: 1.5 },
+      {
+        taskId: 10,
+        title: "認証機能の実装",
+        estimateMin: 60,
+        actualMin: 90,
+        diffMin: 30,
+        ratio: 1.5,
+      },
     ]);
   });
 
@@ -771,9 +876,19 @@ describe("estimateComparisons", () => {
 describe("dailyTotals", () => {
   it("期間内の全日を、作業のない日も含めて返す", () => {
     const entries: EntryLike[] = [
-      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 10, 0) }),
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 10, 0),
+      }),
     ];
-    const result = dailyTotals(entries, TASKS, { from: "2026-08-29", to: "2026-08-30" }, new Date(2026, 7, 30, 12, 0));
+    const result = dailyTotals(
+      entries,
+      TASKS,
+      { from: "2026-08-29", to: "2026-08-30" },
+      new Date(2026, 7, 30, 12, 0),
+    );
     expect(result).toEqual([
       { date: "2026-08-29", byCategory: [{ categoryId: 1, minutes: 60 }] },
       { date: "2026-08-30", byCategory: [] },
@@ -918,13 +1033,16 @@ git commit -m "feat: 割り込み指標・見積もり比較・日次集計を�
 ## Task 4: タイマーの Server Actions
 
 **Files:**
+
 - Create: `src/server/actions/timer.ts`, `src/server/actions/task.ts`
 - Create: `src/server/actions/timer.test.ts`, `vitest.setup.ts`
 - Modify: `vitest.config.ts`
 
 **Interfaces:**
+
 - Consumes: `@/lib/prisma` の `prisma`
 - Produces:
+
   ```ts
   // timer.ts — すべて "use server"
   startTimer(taskId: number): Promise<void>
@@ -994,7 +1112,13 @@ Expected: PASS（14 passed）。集計関数のテストは DB に触らない�
 ```ts
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { createTaskAndStart, getRunningEntry, startTimer, stopTimer, updateEntryTimes } from "./timer";
+import {
+  createTaskAndStart,
+  getRunningEntry,
+  startTimer,
+  stopTimer,
+  updateEntryTimes,
+} from "./timer";
 
 async function resetDatabase() {
   await prisma.entry.deleteMany();
@@ -1305,17 +1429,36 @@ git commit -m "feat: タイマー操作の Server Actions を追加"
 ## Task 5: shadcn/ui の導入と今日の画面
 
 **Files:**
+
 - Create: `components.json`, `src/components/ui/*`（shadcn CLI が生成）
 - Create: `src/server/queries/today.ts`, `src/components/running-timer.tsx`, `src/components/start-panel.tsx`, `src/components/today-log.tsx`
 - Modify: `src/app/page.tsx`, `src/app/layout.tsx`
 
 **Interfaces:**
+
 - Consumes: `startTimer`, `stopTimer`, `createTaskAndStart`, `getRunningEntry`（Task 4）/ `sumByCategory`, `toDateKey`（Task 3）
 - Produces: `getTodayView(): Promise<TodayView>`
+
   ```ts
   type TodayView = {
-    running: { entryId: number; taskId: number; title: string; categoryName: string; categoryColor: string; startedAt: Date } | null;
-    entries: { id: number; taskId: number; title: string; categoryName: string; categoryColor: string; startedAt: Date; endedAt: Date | null; isInterruption: boolean }[];
+    running: {
+      entryId: number;
+      taskId: number;
+      title: string;
+      categoryName: string;
+      categoryColor: string;
+      startedAt: Date;
+    } | null;
+    entries: {
+      id: number;
+      taskId: number;
+      title: string;
+      categoryName: string;
+      categoryColor: string;
+      startedAt: Date;
+      endedAt: Date | null;
+      isInterruption: boolean;
+    }[];
     categoryTotals: CategoryTotal[];
     totalMinutes: number;
     activeTasks: { id: number; title: string; categoryName: string }[];
@@ -1390,10 +1533,7 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
   const [rawEntries, categories, tasks] = await Promise.all([
     prisma.entry.findMany({
       where: {
-        OR: [
-          { startedAt: { gte: from, lte: to } },
-          { endedAt: null },
-        ],
+        OR: [{ startedAt: { gte: from, lte: to } }, { endedAt: null }],
       },
       include: { task: { include: { category: true } } },
       orderBy: { startedAt: "asc" },
@@ -1624,7 +1764,13 @@ export function StartPanel({
               </option>
             ))}
           </select>
-          <Input name="estimateMin" type="number" min={1} placeholder="見積もり(分)" className="w-36" />
+          <Input
+            name="estimateMin"
+            type="number"
+            min={1}
+            placeholder="見積もり(分)"
+            className="w-36"
+          />
         </div>
         <Button type="submit" className="w-full">
           作成して Start
@@ -1667,8 +1813,7 @@ export function TodayLog({ entries }: { entries: TodayViewEntry[] }) {
             aria-hidden
           />
           <span className="text-muted-foreground w-28 shrink-0 font-mono text-xs">
-            {format(entry.startedAt, "HH:mm")}–
-            {entry.endedAt ? format(entry.endedAt, "HH:mm") : ""}
+            {format(entry.startedAt, "HH:mm")}–{entry.endedAt ? format(entry.endedAt, "HH:mm") : ""}
           </span>
           <span className="min-w-0 flex-1 truncate">{entry.title}</span>
           {entry.isInterruption && <Badge variant="outline">割り込み</Badge>}
@@ -1727,9 +1872,7 @@ export default async function TodayPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-semibold">
-          今日の合計 {Math.round(view.totalMinutes)}分
-        </h2>
+        <h2 className="font-semibold">今日の合計 {Math.round(view.totalMinutes)}分</h2>
         <div className="flex h-4 overflow-hidden rounded-full">
           {view.categoryTotals.map((total) => (
             <div
@@ -1771,9 +1914,15 @@ export const metadata = {
 
 ```tsx
 <nav className="flex gap-4 border-b px-6 py-3 text-sm">
-  <a href="/" className="hover:underline">今日</a>
-  <a href="/tasks" className="hover:underline">タスク</a>
-  <a href="/analytics" className="hover:underline">分析</a>
+  <a href="/" className="hover:underline">
+    今日
+  </a>
+  <a href="/tasks" className="hover:underline">
+    タスク
+  </a>
+  <a href="/analytics" className="hover:underline">
+    分析
+  </a>
 </nav>
 ```
 
@@ -1811,13 +1960,26 @@ git commit -m "feat: 今日の画面（タイマー・Start パネル・ログ�
 ## Task 6: タスク一覧画面
 
 **Files:**
+
 - Create: `src/server/queries/tasks.ts`, `src/app/tasks/page.tsx`, `src/components/task-row.tsx`
 
 **Interfaces:**
+
 - Consumes: `taskActualMinutes`（Task 3）/ `startTimer`（Task 4）/ `updateTaskStatus`（Task 4）
 - Produces: `getTaskList(status?: TaskStatus): Promise<TaskListItem[]>`
+
   ```ts
-  type TaskListItem = { id: number; title: string; categoryName: string; categoryColor: string; status: string; estimateMin: number | null; actualMin: number; diffMin: number | null; lastWorkedAt: Date | null };
+  type TaskListItem = {
+    id: number;
+    title: string;
+    categoryName: string;
+    categoryColor: string;
+    status: string;
+    estimateMin: number | null;
+    actualMin: number;
+    diffMin: number | null;
+    lastWorkedAt: Date | null;
+  };
   ```
 
 - [ ] **Step 1: タスク一覧のクエリを書く**
@@ -1986,9 +2148,7 @@ export default async function TasksPage({
           <a
             key={item.label}
             href={item.value ? `/tasks?status=${item.value}` : "/tasks"}
-            className={`rounded-md border px-3 py-1 ${
-              filter === item.value ? "bg-accent" : ""
-            }`}
+            className={`rounded-md border px-3 py-1 ${filter === item.value ? "bg-accent" : ""}`}
           >
             {item.label}
           </a>
@@ -2055,9 +2215,11 @@ git commit -m "feat: タスク一覧画面を追加"
 ## Task 7: 分析画面
 
 **Files:**
+
 - Create: `src/server/queries/analytics.ts`, `src/app/analytics/page.tsx`, `src/components/category-pie.tsx`, `src/components/daily-stack-chart.tsx`
 
 **Interfaces:**
+
 - Consumes: `sumByCategory`, `dailyTotals`, `countInterruptions`, `averageFocusMin`, `estimateComparisons`, `toDateKey`（すべて Task 3）
 - Produces: `getAnalytics(period: "day" | "week" | "month", now?: Date): Promise<AnalyticsView>`
 
@@ -2110,10 +2272,7 @@ function resolveRange(period: Period, now: Date): { from: Date; to: Date } {
   return { from: startOfMonth(now), to: endOfMonth(now) };
 }
 
-export async function getAnalytics(
-  period: Period,
-  now: Date = new Date(),
-): Promise<AnalyticsView> {
+export async function getAnalytics(period: Period, now: Date = new Date()): Promise<AnalyticsView> {
   const { from, to } = resolveRange(period, now);
   const range: DateRange = { from: toDateKey(from), to: toDateKey(to) };
 
@@ -2204,7 +2363,16 @@ export function CategoryPie({ totals }: { totals: CategoryTotal[] }) {
 ```tsx
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type { DailyTotal } from "@/lib/aggregate";
 
 export function DailyStackChart({
@@ -2294,9 +2462,7 @@ export default async function AnalyticsPage({
       <section className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border p-4">
           <p className="text-muted-foreground text-sm">合計時間</p>
-          <p className="text-2xl font-bold tabular-nums">
-            {(view.totalMinutes / 60).toFixed(1)}h
-          </p>
+          <p className="text-2xl font-bold tabular-nums">{(view.totalMinutes / 60).toFixed(1)}h</p>
         </div>
         <div className="rounded-lg border p-4">
           <p className="text-muted-foreground text-sm">割り込み回数</p>
@@ -2408,10 +2574,12 @@ git commit -m "feat: 分析画面（カテゴリ配分・日次推移・割り�
 タブのタイトル表示と2時間超の警告は Task 5 で実装済み。ここでは残る「起動時に放置エントリを検出して終了時刻を確認する」を作る。
 
 **Files:**
+
 - Create: `src/components/stale-entry-dialog.tsx`
 - Modify: `src/app/page.tsx`, `src/server/queries/today.ts`
 
 **Interfaces:**
+
 - Consumes: `updateEntryTimes`（Task 4）/ `TodayView`（Task 5）
 - Produces: `TodayView` に `staleRunning: { entryId: number; title: string; startedAt: Date } | null` を追加する
 
@@ -2433,15 +2601,15 @@ import { differenceInHours, endOfDay, startOfDay } from "date-fns";
 `return` 文の直前に判定を追加する。
 
 ```ts
-  const STALE_THRESHOLD_HOURS = 8;
-  const staleRunning =
-    runningRaw && differenceInHours(now, runningRaw.startedAt) >= STALE_THRESHOLD_HOURS
-      ? {
-          entryId: runningRaw.id,
-          title: runningRaw.task.title,
-          startedAt: runningRaw.startedAt,
-        }
-      : null;
+const STALE_THRESHOLD_HOURS = 8;
+const staleRunning =
+  runningRaw && differenceInHours(now, runningRaw.startedAt) >= STALE_THRESHOLD_HOURS
+    ? {
+        entryId: runningRaw.id,
+        title: runningRaw.task.title,
+        startedAt: runningRaw.startedAt,
+      }
+    : null;
 ```
 
 `return` するオブジェクトに `staleRunning,` を追加する。
@@ -2517,13 +2685,15 @@ import { StaleEntryDialog } from "@/components/stale-entry-dialog";
 `<h1>` の直後に以下を挿入する。
 
 ```tsx
-      {view.staleRunning && (
-        <StaleEntryDialog
-          entryId={view.staleRunning.entryId}
-          title={view.staleRunning.title}
-          startedAt={view.staleRunning.startedAt}
-        />
-      )}
+{
+  view.staleRunning && (
+    <StaleEntryDialog
+      entryId={view.staleRunning.entryId}
+      title={view.staleRunning.title}
+      startedAt={view.staleRunning.startedAt}
+    />
+  );
+}
 ```
 
 - [ ] **Step 4: 手で動作確認する**
