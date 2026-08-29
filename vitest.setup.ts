@@ -11,7 +11,7 @@ const TEST_DB_PATH = "prisma/test.db";
 
 beforeAll(() => {
   if (existsSync(TEST_DB_PATH)) unlinkSync(TEST_DB_PATH);
-  execSync("npx prisma migrate deploy", {
+  execSync("pnpm exec prisma migrate deploy", {
     env: { ...process.env, DATABASE_URL: "file:./prisma/test.db" },
     stdio: "inherit",
   });

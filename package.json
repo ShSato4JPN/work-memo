@@ -42,6 +42,14 @@
     "typescript": "^5",
     "vitest": "^4.1.11"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "better-sqlite3",
+      "esbuild",
+      "prisma"
+    ]
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   }

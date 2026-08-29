@@ -6,21 +6,21 @@
 ## 開発の始め方
 
 ```bash
-npm install                   # postinstall で prisma generate が走る
-cp .env.example .env          # DATABASE_URL="file:./prisma/dev.db"
-npx prisma migrate deploy     # DB を作成（既存 DB があればそのまま）
-npx prisma db seed            # カテゴリの初期データを投入
-npm run dev                   # http://localhost:3000
+pnpm install                     # postinstall で prisma generate が走る
+cp .env.example .env             # DATABASE_URL="file:./prisma/dev.db"
+pnpm exec prisma migrate deploy  # DB を作成（既存 DB があればそのまま）
+pnpm exec prisma db seed         # カテゴリの初期データを投入
+pnpm dev                         # http://localhost:3000
 ```
 
-`prisma/dev.db` が実データ。中身は `npx prisma studio` で直接確認・編集できる。
+`prisma/dev.db` が実データ。中身は `pnpm exec prisma studio` で直接確認・編集できる。
 
 ## その他のコマンド
 
 ```bash
-npm test          # Vitest（ロジックと Server Actions。UI テストは書かない）
-npm run lint      # oxlint（ESLint は使わない）
-npm run format    # oxfmt（Prettier は使わない）
+pnpm test    # Vitest（ロジックと Server Actions。UI テストは書かない）
+pnpm lint    # oxlint（ESLint は使わない）
+pnpm format  # oxfmt（Prettier は使わない）
 ```
 
 ---
