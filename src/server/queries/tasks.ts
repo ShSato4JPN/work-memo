@@ -9,7 +9,12 @@ export type TaskListItem = {
   categoryColor: string;
   status: string;
   estimateMin: number | null;
-  actualMin: number;
+  /**
+   * 完了したエントリだけの合計（分）。計測中の分は含まない。
+   * 計測中の経過は画面側が runningSince から毎秒計算して足すため、
+   * ここに入れるとサーバ描画時点の値と二重になる。
+   */
+  finishedMin: number;
   diffMin: number | null;
   lastWorkedAt: Date | null;
   /** 計測中ならその開始時刻。行の時計と開始/停止トグルの状態はこれで決まる */
@@ -29,8 +34,9 @@ export async function getTaskList(
   });
 
   const items = tasks.map((task) => {
+    const finished = task.entries.filter((entry) => entry.endedAt !== null);
     const actuals = taskActualMinutes(
-      task.entries.map((entry) => ({
+      finished.map((entry) => ({
         id: entry.id,
         taskId: entry.taskId,
         startedAt: entry.startedAt,
@@ -39,7 +45,7 @@ export async function getTaskList(
       })),
       now,
     );
-    const actualMin = actuals.get(task.id) ?? 0;
+    const finishedMin = actuals.get(task.id) ?? 0;
 
     const runningSince = task.entries.find((entry) => entry.endedAt === null)?.startedAt ?? null;
 
@@ -55,8 +61,8 @@ export async function getTaskList(
       categoryColor: task.category.color,
       status: task.status,
       estimateMin: task.estimateMin,
-      actualMin,
-      diffMin: task.estimateMin === null ? null : actualMin - task.estimateMin,
+      finishedMin,
+      diffMin: task.estimateMin === null ? null : finishedMin - task.estimateMin,
       lastWorkedAt,
       runningSince,
     };

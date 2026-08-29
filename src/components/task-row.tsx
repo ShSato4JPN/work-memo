@@ -25,8 +25,8 @@ function formatClock(totalSeconds: number): string {
 /**
  * タスク1件の行。開始・停止・完了と経過時間の表示がこの行で完結する。
  *
- * 計測中は 1 秒ごとに startedAt からの差分を計算し直す（クライアントに溜め込まない）。
- * actualMin はサーバが返した時点までの実績なので、計測中はそこに経過分を足して表示する。
+ * 表示する時間は「完了した分（finishedMin）＋ いま計測中の経過」。
+ * 経過は 1 秒ごとに startedAt からの差分を計算し直すので、クライアントに溜め込まない。
  */
 export function TaskRow({ task }: { task: TaskListItem }) {
   const running = task.runningSince !== null;
@@ -47,12 +47,7 @@ export function TaskRow({ task }: { task: TaskListItem }) {
     return () => clearInterval(timerId);
   }, [startedAtMs]);
 
-  // サーバ側の actualMin には計測中エントリの「サーバ描画時点まで」が入っている。
-  // 二重に足さないよう、計測中は実績からそのぶんを引いてから経過秒を足し直す。
-  const serverSessionMin =
-    startedAtMs === null ? 0 : Math.max(0, (Date.now() - startedAtMs) / 60000);
-  const baseMin = running ? Math.max(0, task.actualMin - serverSessionMin) : task.actualMin;
-  const totalSeconds = Math.round(baseMin * 60) + (running ? sessionSeconds : 0);
+  const totalSeconds = Math.round(task.finishedMin * 60) + (running ? sessionSeconds : 0);
   const totalMin = totalSeconds / 60;
 
   const roundedDiff = task.estimateMin === null ? null : Math.round(totalMin - task.estimateMin);

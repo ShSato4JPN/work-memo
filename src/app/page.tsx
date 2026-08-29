@@ -1,3 +1,4 @@
+import { DayTimeline } from "@/components/day-timeline";
 import { StaleEntryDialog } from "@/components/stale-entry-dialog";
 import { TodayLog } from "@/components/today-log";
 import { getTodayView } from "@/server/queries/today";
@@ -78,6 +79,22 @@ export default async function TodayPage() {
             </ul>
           </>
         )}
+      </section>
+
+      <section className="bg-card rounded-3xl p-6 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+        <h2 className="mb-4 text-lg font-bold">時間の使い方</h2>
+        <DayTimeline
+          entries={view.entries.map((entry) => ({
+            id: entry.id,
+            taskId: entry.taskId,
+            title: entry.title,
+            categoryColor: entry.categoryColor,
+            startedAt: entry.startedAt,
+            endedAt: entry.endedAt,
+          }))}
+          day={now}
+          now={now}
+        />
       </section>
 
       <section className="space-y-3">
