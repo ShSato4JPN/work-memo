@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plex-sans);
-  --font-mono: var(--font-plex-mono);
-  --font-heading: var(--font-plex-sans);
+  --font-sans: var(--font-rounded);
+  --font-mono: var(--font-rounded);
+  --font-heading: var(--font-rounded);
   --color-live: var(--live);
   --color-live-soft: var(--live-soft);
   --color-rule-strong: var(--rule-strong);
@@ -53,85 +53,84 @@
 }
 
 :root {
-  /* エンジニアリング台帳: 方眼紙の淡い灰緑を地に、青焼きの藍を構造色、印章の赤を「生きている状態」に */
-  --background: #e7e9e4;
-  --foreground: #14181a;
-  --card: #f5f6f3;
-  --card-foreground: #14181a;
-  --popover: #f5f6f3;
-  --popover-foreground: #14181a;
-  --primary: #1d4e6b;
-  --primary-foreground: #f5f6f3;
-  --secondary: #dcdfd8;
-  --secondary-foreground: #14181a;
-  --muted: #dcdfd8;
-  --muted-foreground: #5e6663;
-  --accent: #d6dbd3;
-  --accent-foreground: #14181a;
-  --destructive: #c0392b;
-  --border: #c9cdc6;
-  --input: #c9cdc6;
-  --ring: #1d4e6b;
-  --chart-1: #1d4e6b;
-  --chart-2: #b06f1a;
-  --chart-3: #2f6b52;
-  --chart-4: #c0392b;
-  --chart-5: #6b706c;
-  --radius: 0.25rem;
-  --sidebar: #f5f6f3;
-  --sidebar-foreground: #14181a;
-  --sidebar-primary: #1d4e6b;
-  --sidebar-primary-foreground: #f5f6f3;
-  --sidebar-accent: #d6dbd3;
-  --sidebar-accent-foreground: #14181a;
-  --sidebar-border: #c9cdc6;
-  --sidebar-ring: #1d4e6b;
+  /* やわらかい配色: 白基調、進むは緑、止めるはコーラル。角は大きく丸く。 */
+  --background: #f4f7fa;
+  --foreground: #2a3442;
+  --card: #ffffff;
+  --card-foreground: #2a3442;
+  --popover: #ffffff;
+  --popover-foreground: #2a3442;
+  --primary: #22a06b;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf0f7;
+  --secondary-foreground: #2a3442;
+  --muted: #eaf0f7;
+  --muted-foreground: #74839a;
+  --accent: #e7f1fb;
+  --accent-foreground: #2a3442;
+  --destructive: #f2603c;
+  --border: #e3e9f0;
+  --input: #d8e1eb;
+  --ring: #22a06b;
+  --chart-1: #4c8df6;
+  --chart-2: #f2a93b;
+  --chart-3: #35c08a;
+  --chart-4: #f2705c;
+  --chart-5: #98a6b8;
+  --radius: 1rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2a3442;
+  --sidebar-primary: #22a06b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7f1fb;
+  --sidebar-accent-foreground: #2a3442;
+  --sidebar-border: #e3e9f0;
+  --sidebar-ring: #22a06b;
 
-  /* 計測器の独自トークン */
-  --live: #c0392b;
-  --live-soft: #e8d3cf;
-  --rule-strong: #a9afa6;
-  --gauge-track: #d0d4cb;
+  --live: #f2603c;
+  --live-soft: #fdeae5;
+  --rule-strong: #c3cedb;
+  --gauge-track: #e3e9f0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #14171a;
-    --foreground: #e4e7e3;
-    --card: #1b1f23;
-    --card-foreground: #e4e7e3;
-    --popover: #1b1f23;
-    --popover-foreground: #e4e7e3;
-    --primary: #6fb3d2;
-    --primary-foreground: #14171a;
-    --secondary: #242a2f;
-    --secondary-foreground: #e4e7e3;
-    --muted: #242a2f;
-    --muted-foreground: #8a928e;
-    --accent: #2c3237;
-    --accent-foreground: #e4e7e3;
-    --destructive: #e85d3c;
-    --border: #2c3237;
-    --input: #2c3237;
-    --ring: #6fb3d2;
-    --chart-1: #6fb3d2;
-    --chart-2: #d99b41;
-    --chart-3: #5aa885;
-    --chart-4: #e85d3c;
-    --chart-5: #8a928e;
-    --sidebar: #1b1f23;
-    --sidebar-foreground: #e4e7e3;
-    --sidebar-primary: #6fb3d2;
-    --sidebar-primary-foreground: #14171a;
-    --sidebar-accent: #2c3237;
-    --sidebar-accent-foreground: #e4e7e3;
-    --sidebar-border: #2c3237;
-    --sidebar-ring: #6fb3d2;
+    --background: #1b2430;
+    --foreground: #e8eef5;
+    --card: #222e3d;
+    --card-foreground: #e8eef5;
+    --popover: #222e3d;
+    --popover-foreground: #e8eef5;
+    --primary: #35c08a;
+    --primary-foreground: #10241b;
+    --secondary: #2a3746;
+    --secondary-foreground: #e8eef5;
+    --muted: #2a3746;
+    --muted-foreground: #93a3b8;
+    --accent: #2f3f52;
+    --accent-foreground: #e8eef5;
+    --destructive: #ff7a5c;
+    --border: #32404f;
+    --input: #3b4b5c;
+    --ring: #35c08a;
+    --chart-1: #6ba5f7;
+    --chart-2: #f2b45c;
+    --chart-3: #4fd0a0;
+    --chart-4: #ff8a73;
+    --chart-5: #a3b1c2;
+    --sidebar: #222e3d;
+    --sidebar-foreground: #e8eef5;
+    --sidebar-primary: #35c08a;
+    --sidebar-primary-foreground: #10241b;
+    --sidebar-accent: #2f3f52;
+    --sidebar-accent-foreground: #e8eef5;
+    --sidebar-border: #32404f;
+    --sidebar-ring: #35c08a;
 
-    --live: #e85d3c;
-    --live-soft: #3a2320;
-    --rule-strong: #454d52;
-    --gauge-track: #2c3237;
+    --live: #ff7a5c;
+    --live-soft: #3d2620;
+    --rule-strong: #55677a;
+    --gauge-track: #32404f;
   }
 }
 

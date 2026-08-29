@@ -125,12 +125,12 @@ export function CommandPalette({ onClose, tasks, categories, runningTaskId }: Pr
         role="dialog"
         aria-modal="true"
         aria-label="作業を開始"
-        className="bg-popover ring-rule-strong/60 w-full max-w-xl overflow-hidden rounded-sm shadow-2xl ring-1"
+        className="bg-popover w-full max-w-xl overflow-hidden rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10"
         onKeyDown={handleKeyDown}
       >
-        <div className="border-border flex items-center gap-3 border-b px-4">
-          <span className="text-muted-foreground font-mono text-[11px] tracking-[0.2em] uppercase">
-            start
+        <div className="border-border flex items-center gap-3 border-b px-5">
+          <span aria-hidden className="text-muted-foreground text-xl">
+            🔍
           </span>
           <input
             ref={inputRef}
@@ -140,15 +140,15 @@ export function CommandPalette({ onClose, tasks, categories, runningTaskId }: Pr
               setCursor(0);
             }}
             placeholder="タスク名を入力"
-            aria-label="タスク名を入力して絞り込む、または新規作成する"
-            className="placeholder:text-muted-foreground/70 h-14 flex-1 bg-transparent text-[15px] outline-none"
+            aria-label="タスク名で検索、または新規作成"
+            className="placeholder:text-muted-foreground/70 h-16 flex-1 bg-transparent text-lg outline-none"
           />
-          <kbd className="border-border text-muted-foreground rounded-xs border px-1.5 py-0.5 font-mono text-[10px]">
+          <kbd className="border-border text-muted-foreground hidden rounded-lg border px-2 py-1 text-xs sm:block">
             esc
           </kbd>
         </div>
 
-        <ul ref={listRef} className="max-h-[46vh] overflow-y-auto py-1" role="listbox">
+        <ul ref={listRef} className="max-h-[46vh] overflow-y-auto p-2" role="listbox">
           {matched.map((task, index) => {
             const active = index === cursor;
             return (
@@ -161,25 +161,24 @@ export function CommandPalette({ onClose, tasks, categories, runningTaskId }: Pr
                   disabled={pending}
                   onMouseMove={() => setCursor(index)}
                   onClick={submit}
-                  className={`flex w-full items-center gap-3 px-4 py-2.5 text-left ${
+                  className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left ${
                     active ? "bg-accent" : ""
                   }`}
                 >
                   <span
                     aria-hidden
-                    className="h-5 w-[3px] shrink-0 rounded-full"
+                    className="size-3 shrink-0 rounded-full"
                     style={{ backgroundColor: task.categoryColor }}
                   />
-                  <span className="min-w-0 flex-1 truncate text-[14px]">{task.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-base font-medium">
+                    {task.title}
+                  </span>
                   {task.id === runningTaskId && (
-                    <span className="text-live font-mono text-[10px] tracking-widest uppercase">
+                    <span className="bg-live-soft text-live shrink-0 rounded-full px-2 py-0.5 text-xs font-bold">
                       計測中
                     </span>
                   )}
-                  <span className="text-muted-foreground shrink-0 font-mono text-[11px]">
-                    {task.estimateMin === null ? "—" : `${task.estimateMin}分`}
-                  </span>
-                  <span className="text-muted-foreground shrink-0 text-[11px]">
+                  <span className="text-muted-foreground shrink-0 text-sm">
                     {task.categoryName}
                   </span>
                 </button>
@@ -197,37 +196,37 @@ export function CommandPalette({ onClose, tasks, categories, runningTaskId }: Pr
                 disabled={pending}
                 onMouseMove={() => setCursor(createIndex)}
                 onClick={submit}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left ${
+                className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left ${
                   onCreateRow ? "bg-accent" : ""
                 }`}
               >
-                <span className="text-primary shrink-0 font-mono text-[11px] tracking-widest uppercase">
-                  new
+                <span aria-hidden className="text-primary shrink-0 text-lg">
+                  ＋
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[14px]">
-                  「{trimmed}」を作成して開始
+                <span className="min-w-0 flex-1 truncate text-base font-medium">
+                  「{trimmed}」を新規作成して開始
                 </span>
               </button>
             </li>
           )}
 
           {rowCount === 0 && (
-            <li className="text-muted-foreground px-4 py-6 text-center text-[13px]">
-              タスク名を入力すると、ここから新規作成できます。
+            <li className="text-muted-foreground px-4 py-8 text-center text-sm">
+              タスク名を入力すると新規作成できます。
             </li>
           )}
         </ul>
 
         {onCreateRow && (
-          <div className="border-border bg-card flex items-center gap-2 border-t px-4 py-3">
-            <label className="text-muted-foreground text-[11px]" htmlFor="palette-category">
+          <div className="border-border bg-card flex flex-wrap items-center gap-2 border-t px-5 py-4">
+            <label className="text-muted-foreground text-sm" htmlFor="palette-category">
               カテゴリ
             </label>
             <select
               id="palette-category"
               value={categoryId}
               onChange={(event) => setCategoryId(event.target.value)}
-              className="border-border bg-background h-8 rounded-xs border px-2 text-[13px]"
+              className="border-input bg-background h-10 rounded-xl border px-3 text-sm"
             >
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
@@ -235,7 +234,7 @@ export function CommandPalette({ onClose, tasks, categories, runningTaskId }: Pr
                 </option>
               ))}
             </select>
-            <label className="text-muted-foreground ml-2 text-[11px]" htmlFor="palette-estimate">
+            <label className="text-muted-foreground ml-2 text-sm" htmlFor="palette-estimate">
               見積もり
             </label>
             <input
@@ -245,15 +244,19 @@ export function CommandPalette({ onClose, tasks, categories, runningTaskId }: Pr
               value={estimate}
               onChange={(event) => setEstimate(event.target.value)}
               placeholder="任意"
-              className="border-border bg-background h-8 w-24 rounded-xs border px-2 font-mono text-[13px]"
+              className="border-input bg-background h-10 w-24 rounded-xl border px-3 text-sm tabular-nums"
             />
-            <span className="text-muted-foreground text-[11px]">分</span>
+            <span className="text-muted-foreground text-sm">分</span>
           </div>
         )}
 
-        <div className="border-border text-muted-foreground flex items-center justify-between border-t px-4 py-2 font-mono text-[10px]">
-          <span>↑↓ 選択 · Enter 開始</span>
-          {error ? <span className="text-live">{error}</span> : <span>{rowCount} 件</span>}
+        <div className="border-border text-muted-foreground flex items-center justify-between border-t px-5 py-3 text-xs">
+          <span>↑↓ で選択 · Enter で開始</span>
+          {error ? (
+            <span className="text-live font-bold">{error}</span>
+          ) : (
+            <span>{rowCount} 件</span>
+          )}
         </div>
       </div>
     </div>

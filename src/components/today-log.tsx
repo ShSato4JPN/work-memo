@@ -1,7 +1,5 @@
 import { format } from "date-fns";
 import { EntryTimeEditor } from "@/components/entry-time-editor";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { startTimer } from "@/server/actions/timer";
 import type { TodayViewEntry } from "@/server/queries/today";
 
@@ -20,42 +18,92 @@ function timeRangeLabel(entry: TodayViewEntry): string {
   const start = entry.startedOnEarlierDay
     ? format(entry.startedAt, "MM/dd HH:mm")
     : format(entry.startedAt, "HH:mm");
-  const end = entry.endedAt ? format(entry.endedAt, "HH:mm") : "";
-  return `${start}–${end}`;
+  const end = entry.endedAt ? format(entry.endedAt, "HH:mm") : "現在";
+  return `${start} → ${end}`;
 }
 
 export function TodayLog({ entries }: { entries: TodayViewEntry[] }) {
   if (entries.length === 0) {
-    return <p className="text-muted-foreground text-sm">まだ今日の記録はありません。</p>;
+    return (
+      <p className="bg-card text-muted-foreground rounded-3xl px-6 py-8 text-center text-base shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+        まだ記録がありません。
+      </p>
+    );
   }
 
+  // 一番長い記録を基準に、行ごとの長さを目で比べられるようにする
+  const longest = Math.max(...entries.map((entry) => entry.todayMinutes), 1);
+
   return (
-    <ul className="divide-y">
+    <ul className="space-y-2">
       {entries.map((entry) => (
-        <li key={entry.id} className="flex flex-wrap items-center gap-3 py-2">
-          <span
-            className="size-2 shrink-0 rounded-full"
-            style={{ backgroundColor: entry.categoryColor }}
-            aria-hidden
-          />
-          <span className="text-muted-foreground w-32 shrink-0 font-mono text-xs">
-            {timeRangeLabel(entry)}
-          </span>
-          <span className="min-w-0 flex-1 truncate">{entry.title}</span>
-          {entry.startedOnEarlierDay && <Badge variant="outline">日跨ぎ</Badge>}
-          {entry.isInterruption && <Badge variant="outline">割り込み</Badge>}
-          <span className="w-16 shrink-0 text-right text-sm">{durationLabel(entry)}</span>
-          <form action={startTimer.bind(null, entry.taskId)}>
-            <Button type="submit" variant="ghost" size="sm">
-              再開
-            </Button>
-          </form>
-          <EntryTimeEditor
-            entryId={entry.id}
-            title={entry.title}
-            startedAt={entry.startedAt}
-            endedAt={entry.endedAt}
-          />
+        <li
+          key={entry.id}
+          className="bg-card rounded-3xl px-5 py-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5"
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span
+              className="size-3.5 shrink-0 rounded-full"
+              style={{ backgroundColor: entry.categoryColor }}
+              aria-hidden
+            />
+            <span className="min-w-0 flex-1 truncate text-base font-bold">{entry.title}</span>
+
+            {entry.startedOnEarlierDay && (
+              <span className="bg-secondary text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
+                日跨ぎ
+              </span>
+            )}
+            {entry.isInterruption && (
+              <span className="bg-secondary text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
+                割り込み
+              </span>
+            )}
+
+            <span
+              className={`shrink-0 text-lg font-extrabold tabular-nums ${
+                entry.endedAt === null ? "text-live" : ""
+              }`}
+            >
+              {durationLabel(entry)}
+            </span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+              {timeRangeLabel(entry)}
+            </span>
+
+            <span
+              aria-hidden
+              className="bg-gauge-track hidden h-2 min-w-16 flex-1 overflow-hidden rounded-full sm:block"
+            >
+              <span
+                className="block h-full rounded-full"
+                style={{
+                  width: `${Math.max((entry.todayMinutes / longest) * 100, 3)}%`,
+                  backgroundColor: entry.categoryColor,
+                }}
+              />
+            </span>
+
+            <span className="ml-auto flex shrink-0 items-center gap-2">
+              <form action={startTimer.bind(null, entry.taskId)}>
+                <button
+                  type="submit"
+                  className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
+                >
+                  再開
+                </button>
+              </form>
+              <EntryTimeEditor
+                entryId={entry.id}
+                title={entry.title}
+                startedAt={entry.startedAt}
+                endedAt={entry.endedAt}
+              />
+            </span>
+          </div>
         </li>
       ))}
     </ul>

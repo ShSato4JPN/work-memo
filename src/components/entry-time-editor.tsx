@@ -3,7 +3,6 @@
 import { format } from "date-fns";
 import { useState } from "react";
 import { SubmitButton } from "@/components/submit-button";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateEntryTimes } from "@/server/actions/timer";
 
@@ -36,20 +35,19 @@ export function EntryTimeEditor({
 
   if (!open) {
     return (
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        size="sm"
         onClick={() => setOpen(true)}
         aria-label={`「${title}」の時刻を修正`}
+        className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
       >
-        時刻
-      </Button>
+        時刻を修正
+      </button>
     );
   }
 
   return (
-    <div className="bg-muted/40 basis-full space-y-2 rounded-md border p-3">
+    <div className="bg-background mt-3 basis-full space-y-3 rounded-2xl p-4">
       <form
         action={async (formData: FormData) => {
           const startValue = String(formData.get("startedAt") ?? "");
@@ -96,11 +94,11 @@ export function EntryTimeEditor({
           name="startedAt"
           aria-label="開始時刻"
           defaultValue={toInputValue(startedAt)}
-          className="w-52"
+          className="border-input bg-card h-11 w-56 rounded-xl border px-3 text-base"
           required
         />
         {isRunning ? (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm">
             計測中のエントリは開始時刻のみ修正できます（終了は Stop から）
           </p>
         ) : (
@@ -109,17 +107,23 @@ export function EntryTimeEditor({
             name="endedAt"
             aria-label="終了時刻"
             defaultValue={toInputValue(endedAt)}
-            className="w-52"
+            className="border-input bg-card h-11 w-56 rounded-xl border px-3 text-base"
             required
           />
         )}
-        <SubmitButton size="sm">保存</SubmitButton>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+        <SubmitButton className="bg-primary rounded-full px-6 py-2.5 text-sm font-bold text-white hover:brightness-95">
+          保存
+        </SubmitButton>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-muted-foreground hover:bg-accent rounded-full px-4 py-2.5 text-sm font-bold"
+        >
           キャンセル
-        </Button>
+        </button>
       </form>
 
-      {error && <p className="text-destructive text-sm">{error}</p>}
+      {error && <p className="text-live text-sm font-bold">{error}</p>}
     </div>
   );
 }

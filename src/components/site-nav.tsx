@@ -13,8 +13,8 @@ export function SiteNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-border border-b" aria-label="画面">
-      <ul className="mx-auto flex max-w-5xl gap-1 px-5">
+    <nav className="px-4 pt-2 pb-1" aria-label="画面">
+      <ul className="mx-auto flex max-w-4xl gap-2">
         {ITEMS.map((item) => {
           const active = pathname === item.href;
           return (
@@ -22,10 +22,10 @@ export function SiteNav() {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`-mb-px block border-b-2 px-3 py-2.5 text-[13px] transition-colors ${
+                className={`block rounded-full px-5 py-2.5 text-base transition ${
                   active
-                    ? "border-foreground text-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground border-transparent"
+                    ? "bg-card font-bold shadow-sm ring-1 ring-black/5 dark:ring-white/5"
+                    : "text-muted-foreground hover:bg-card/60 font-medium"
                 }`}
               >
                 {item.label}

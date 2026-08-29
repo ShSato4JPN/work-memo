@@ -7,11 +7,11 @@ const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "" })
 const prisma = new PrismaClient({ adapter });
 
 const CATEGORIES = [
-  { name: "開発", color: "#2563eb", sortOrder: 1 },
-  { name: "調査", color: "#f59e0b", sortOrder: 2 },
-  { name: "レビュー", color: "#10b981", sortOrder: 3 },
-  { name: "会議", color: "#ef4444", sortOrder: 4 },
-  { name: "その他", color: "#6b7280", sortOrder: 5 },
+  { name: "開発", color: "#4c8df6", sortOrder: 1 },
+  { name: "調査", color: "#f2a93b", sortOrder: 2 },
+  { name: "レビュー", color: "#35c08a", sortOrder: 3 },
+  { name: "会議", color: "#f2705c", sortOrder: 4 },
+  { name: "その他", color: "#98a6b8", sortOrder: 5 },
 ];
 
 async function main() {

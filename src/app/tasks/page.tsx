@@ -22,57 +22,42 @@ export default async function TasksPage({
   const tasks = await getTaskList(filter);
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6 p-6">
-      <h1 className="text-2xl font-bold">タスク</h1>
+    <main className="mx-auto max-w-4xl space-y-5 px-4 py-4 pb-16">
+      <h1 className="px-2 text-xl font-bold">タスク</h1>
 
-      <nav className="flex gap-2 text-sm">
-        {FILTERS.map((item) => (
-          <Link
-            key={item.label}
-            href={item.value ? `/tasks?status=${item.value}` : "/tasks"}
-            aria-current={filter === item.value ? "page" : undefined}
-            className={`rounded-md border px-3 py-1 ${filter === item.value ? "bg-accent" : ""}`}
-          >
-            {item.label}
-          </Link>
-        ))}
+      <nav aria-label="絞り込み">
+        <ul className="flex flex-wrap gap-2">
+          {FILTERS.map((item) => {
+            const active = filter === item.value;
+            return (
+              <li key={item.label}>
+                <Link
+                  href={item.value ? `/tasks?status=${item.value}` : "/tasks"}
+                  aria-current={active ? "page" : undefined}
+                  className={`block rounded-full px-4 py-2 text-sm transition ${
+                    active
+                      ? "bg-card font-bold shadow-sm ring-1 ring-black/5 dark:ring-white/5"
+                      : "text-muted-foreground hover:bg-card/60 font-medium"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      <table className="w-full">
-        <thead>
-          <tr className="text-muted-foreground border-b text-left text-sm">
-            <th scope="col" className="py-2">
-              タスク
-            </th>
-            <th scope="col" className="py-2">
-              カテゴリ
-            </th>
-            <th scope="col" className="py-2 text-right">
-              見積もり
-            </th>
-            <th scope="col" className="py-2 text-right">
-              実績
-            </th>
-            <th scope="col" className="py-2 text-right">
-              差分
-            </th>
-            <th scope="col" className="py-2 text-right">
-              最終作業
-            </th>
-            <th scope="col" className="py-2">
-              <span className="sr-only">操作</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+      {tasks.length === 0 ? (
+        <p className="bg-card text-muted-foreground rounded-3xl px-6 py-10 text-center text-base shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+          該当するタスクがありません。
+        </p>
+      ) : (
+        <ul className="space-y-2">
           {tasks.map((task) => (
             <TaskRow key={task.id} task={task} />
           ))}
-        </tbody>
-      </table>
-
-      {tasks.length === 0 && (
-        <p className="text-muted-foreground text-sm">該当するタスクがありません。</p>
+        </ul>
       )}
     </main>
   );

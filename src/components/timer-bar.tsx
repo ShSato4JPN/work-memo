@@ -11,30 +11,32 @@ function formatClock(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return [hours, minutes, seconds].map((value) => String(value).padStart(2, "0")).join(":");
+  const mmss = [minutes, seconds].map((value) => String(value).padStart(2, "0")).join(":");
+  return `${hours}:${mmss}`;
 }
 
 /**
- * 全画面に常駐する計測バー。このアプリの「機械」にあたる部分。
+ * 全画面に常駐する計測バー。
  *
- * 経過時間はクライアントに保持せず、毎ティック startedAt からの差分を計算し直す。
+ * 大きな時計はそのタスクの「通算」を表示する。止めて再開したときに 0 に戻らず、
+ * 続きから進むように見えるのが狙い。記録自体は 1 回ごとに別エントリのまま。
+ *
+ * 経過はクライアントに溜め込まず、毎ティック startedAt からの差分を計算し直す。
  * リロードやスリープ復帰でズレないのはこのため。
  */
 export function TimerBar({ view }: { view: TimerBarView }) {
   const running = view.running;
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
+  const [sessionSeconds, setSessionSeconds] = useState(() =>
     running ? Math.max(0, Math.floor((Date.now() - running.startedAt.getTime()) / 1000)) : 0,
   );
 
-  // running がオブジェクトなので、依存には同一性の安定した値を使う。
-  // そうしないと再レンダーのたびに interval が張り直される。
   const startedAtMs = running?.startedAt.getTime() ?? null;
 
   useEffect(() => {
-    // 計測していないときの elapsedSeconds は描画に使わないので、書き戻さない
     if (startedAtMs === null) return;
-    const tick = () => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)));
+    const tick = () =>
+      setSessionSeconds(Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)));
     // 壁時計という外部システムとの同期。SSR 時の値を即座にクライアントの現在時刻へ引き直す
     // oxlint-disable-next-line react/set-state-in-effect
     tick();
@@ -42,7 +44,10 @@ export function TimerBar({ view }: { view: TimerBarView }) {
     return () => clearInterval(timerId);
   }, [startedAtMs]);
 
-  const clock = formatClock(elapsedSeconds);
+  // 画面に出す時計は「これまでの合計 + いまのセッション」
+  const priorSeconds = running ? Math.round(running.priorMinutes * 60) : 0;
+  const totalSeconds = priorSeconds + sessionSeconds;
+  const clock = formatClock(totalSeconds);
 
   useEffect(() => {
     document.title = running ? `${clock} ${running.title}` : "作業時間トラッカー";
@@ -61,110 +66,119 @@ export function TimerBar({ view }: { view: TimerBarView }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const elapsedMin = elapsedSeconds / 60;
-  const totalMin = running ? running.priorMinutes + elapsedMin : 0;
+  const totalMin = totalSeconds / 60;
   const estimate = running?.estimateMin ?? null;
   const ratio = estimate && estimate > 0 ? totalMin / estimate : null;
   const overEstimate = ratio !== null && ratio > 1;
-  const tooLong = elapsedMin > WARN_AFTER_MIN;
+  const sessionTooLong = sessionSeconds / 60 > WARN_AFTER_MIN;
 
   return (
     <>
-      <div className="border-border bg-card sticky top-0 z-40 border-b">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-3">
+      <div className="bg-background sticky top-0 z-40 px-4 pt-4 pb-1">
+        <div className="mx-auto max-w-4xl">
           {running ? (
-            <>
-              <span
-                aria-hidden
-                className="h-9 w-[3px] shrink-0 rounded-full"
-                style={{ backgroundColor: running.categoryColor }}
-              />
-
-              <span className="flex shrink-0 items-center gap-2">
+            <div className="bg-card rounded-3xl p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-4">
                 <span
                   aria-hidden
-                  className="bg-live size-2 rounded-full motion-safe:animate-pulse"
+                  className="size-4 shrink-0 rounded-full"
+                  style={{ backgroundColor: running.categoryColor }}
                 />
-                <span className="text-live sr-only font-mono text-[10px] tracking-widest uppercase not-sr-only sm:inline">
-                  rec
-                </span>
-              </span>
 
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-medium">{running.title}</span>
-                <span className="text-muted-foreground block font-mono text-[11px]">
-                  {running.categoryName}
-                  {estimate !== null && (
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-lg font-bold">{running.title}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {running.categoryName}
+                    {sessionTooLong && (
+                      <span className="text-live font-medium">{" · "}停止し忘れていませんか？</span>
+                    )}
+                  </p>
+                </div>
+
+                <p
+                  className={`shrink-0 text-4xl leading-none font-extrabold tabular-nums sm:text-5xl ${
+                    overEstimate ? "text-live" : ""
+                  }`}
+                  suppressHydrationWarning
+                  aria-label={`これまでの合計 ${clock}`}
+                >
+                  {clock}
+                </p>
+
+                <form action={stopTimer} className="shrink-0">
+                  <button
+                    type="submit"
+                    className="bg-live focus-visible:ring-live inline-flex items-center gap-2 rounded-full px-6 py-3 text-base font-bold text-white shadow-sm transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none active:scale-[0.98]"
+                  >
+                    <span aria-hidden className="size-3 rounded-[3px] bg-white" />
+                    停止
+                  </button>
+                </form>
+              </div>
+
+              {/* 見積もりに対して今どこまで来ているか。超えると色が変わる */}
+              <div className="mt-4 flex items-center gap-3">
+                <div
+                  className="bg-gauge-track h-2.5 flex-1 overflow-hidden rounded-full"
+                  role="progressbar"
+                  aria-label="見積もりに対する合計時間"
+                  aria-valuemin={0}
+                  aria-valuemax={estimate ?? undefined}
+                  aria-valuenow={Math.round(totalMin)}
+                  aria-valuetext={
+                    estimate === null
+                      ? `合計 ${Math.round(totalMin)}分（見積もりなし）`
+                      : `見積もり ${estimate}分のうち ${Math.round(totalMin)}分`
+                  }
+                >
+                  {ratio !== null && (
+                    <div
+                      className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${
+                        overEstimate ? "bg-live" : "bg-primary"
+                      }`}
+                      style={{ width: `${Math.min(ratio, 1) * 100}%` }}
+                    />
+                  )}
+                </div>
+                <p className="text-muted-foreground shrink-0 text-sm">
+                  {estimate === null ? (
+                    <>これまで {Math.round(totalMin)}分</>
+                  ) : (
                     <>
-                      {" · "}見積 {estimate}分 / 実績 {Math.round(totalMin)}分
+                      見積もり {estimate}分のうち{" "}
+                      <span className={overEstimate ? "text-live font-bold" : "font-bold"}>
+                        {Math.round(totalMin)}分
+                      </span>
                       {overEstimate && (
-                        <span className="text-live"> +{Math.round(totalMin - estimate)}分</span>
+                        <span className="text-live font-bold">
+                          {" "}
+                          （{Math.round(totalMin - estimate)}分オーバー）
+                        </span>
                       )}
                     </>
                   )}
-                  {tooLong && <span className="text-live"> · 停止し忘れていませんか</span>}
-                </span>
-              </span>
-
-              <span
-                className={`shrink-0 font-mono text-[26px] leading-none tracking-tight tabular-nums sm:text-[32px] ${
-                  overEstimate ? "text-live" : ""
-                }`}
-                suppressHydrationWarning
-              >
-                {clock}
-              </span>
-
-              <form action={stopTimer} className="shrink-0">
-                <button
-                  type="submit"
-                  className="border-live text-live hover:bg-live focus-visible:ring-live rounded-xs border px-4 py-2 text-[13px] font-medium transition-colors hover:text-white focus-visible:ring-2 focus-visible:outline-none"
-                >
-                  停止
-                </button>
-              </form>
-            </>
+                </p>
+              </div>
+            </div>
           ) : (
-            <>
-              <span aria-hidden className="bg-rule-strong h-9 w-[3px] shrink-0 rounded-full" />
-              <span className="text-muted-foreground flex-1 text-[14px]">計測していません</span>
+            <div className="bg-card flex flex-wrap items-center gap-4 rounded-3xl p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+              <span aria-hidden className="bg-muted size-4 shrink-0 rounded-full" />
+              <p className="text-muted-foreground flex-1 text-base">計測していません</p>
               <button
                 type="button"
                 onClick={openPalette}
-                className="border-primary text-primary hover:bg-primary focus-visible:ring-primary flex shrink-0 items-center gap-2 rounded-xs border px-4 py-2 text-[13px] font-medium transition-colors hover:text-white focus-visible:ring-2 focus-visible:outline-none"
+                className="bg-primary focus-visible:ring-primary inline-flex shrink-0 items-center gap-2.5 rounded-full px-7 py-3.5 text-base font-bold text-white shadow-sm transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none active:scale-[0.98]"
               >
-                作業を開始
-                <kbd className="font-mono text-[10px] opacity-70">⌘K</kbd>
+                <span
+                  aria-hidden
+                  className="border-y-[6px] border-l-[10px] border-y-transparent border-l-white"
+                />
+                開始
+                <kbd className="hidden text-xs font-medium opacity-80 sm:inline">⌘K</kbd>
               </button>
-            </>
+            </div>
           )}
         </div>
-
-        {/* シグネチャ: 見積もりに対する現在地。作業中ずっと伸び続け、超えると赤に転じる */}
-        {running && (
-          <div
-            className="bg-gauge-track h-[3px] w-full"
-            role="progressbar"
-            aria-label="見積もりに対する実績"
-            aria-valuemin={0}
-            aria-valuemax={estimate ?? undefined}
-            aria-valuenow={Math.round(totalMin)}
-            aria-valuetext={
-              estimate === null
-                ? `実績 ${Math.round(totalMin)}分（見積もりなし）`
-                : `見積 ${estimate}分に対して実績 ${Math.round(totalMin)}分`
-            }
-          >
-            {ratio !== null && (
-              <div
-                className={`h-full transition-[width] duration-1000 ease-linear ${
-                  overEstimate ? "bg-live" : "bg-primary"
-                }`}
-                style={{ width: `${Math.min(ratio, 1) * 100}%` }}
-              />
-            )}
-          </div>
-        )}
       </div>
 
       {paletteOpen && (
