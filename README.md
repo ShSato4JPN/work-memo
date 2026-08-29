@@ -1,3 +1,30 @@
+# 作業時間トラッカー
+
+日々の作業をリアルタイムのタイマーで記録し、カテゴリ別・見積もり比・割り込みの観点で
+振り返るためのローカル専用アプリ。設計は `docs/superpowers/specs/2026-08-29-work-time-tracker-design.md`。
+
+## 開発の始め方
+
+```bash
+npm install
+cp .env.example .env          # DATABASE_URL="file:./prisma/dev.db"
+npx prisma migrate deploy     # DB を作成（既存 DB があればそのまま）
+npx prisma db seed            # カテゴリの初期データを投入
+npm run dev                   # http://localhost:3000
+```
+
+`prisma/dev.db` が実データ。中身は `npx prisma studio` で直接確認・編集できる。
+
+## その他のコマンド
+
+```bash
+npm test          # Vitest（ロジックと Server Actions。UI テストは書かない）
+npm run lint      # oxlint（ESLint は使わない）
+npm run format    # oxfmt（Prettier は使わない）
+```
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

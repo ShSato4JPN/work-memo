@@ -30,6 +30,7 @@ export default async function TasksPage({
           <Link
             key={item.label}
             href={item.value ? `/tasks?status=${item.value}` : "/tasks"}
+            aria-current={filter === item.value ? "page" : undefined}
             className={`rounded-md border px-3 py-1 ${filter === item.value ? "bg-accent" : ""}`}
           >
             {item.label}
@@ -40,13 +41,27 @@ export default async function TasksPage({
       <table className="w-full">
         <thead>
           <tr className="text-muted-foreground border-b text-left text-sm">
-            <th className="py-2">タスク</th>
-            <th className="py-2">カテゴリ</th>
-            <th className="py-2 text-right">見積もり</th>
-            <th className="py-2 text-right">実績</th>
-            <th className="py-2 text-right">差分</th>
-            <th className="py-2 text-right">最終作業</th>
-            <th className="py-2" />
+            <th scope="col" className="py-2">
+              タスク
+            </th>
+            <th scope="col" className="py-2">
+              カテゴリ
+            </th>
+            <th scope="col" className="py-2 text-right">
+              見積もり
+            </th>
+            <th scope="col" className="py-2 text-right">
+              実績
+            </th>
+            <th scope="col" className="py-2 text-right">
+              差分
+            </th>
+            <th scope="col" className="py-2 text-right">
+              最終作業
+            </th>
+            <th scope="col" className="py-2">
+              <span className="sr-only">操作</span>
+            </th>
           </tr>
         </thead>
         <tbody>

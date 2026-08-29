@@ -38,6 +38,7 @@ export default async function AnalyticsPage({
           <Link
             key={item.value}
             href={`/analytics?period=${item.value}`}
+            aria-current={selected === item.value ? "page" : undefined}
             className={`rounded-md border px-3 py-1 ${selected === item.value ? "bg-accent" : ""}`}
           >
             {item.label}
@@ -99,10 +100,18 @@ export default async function AnalyticsPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground border-b text-left">
-                <th className="py-2">タスク</th>
-                <th className="py-2 text-right">見積もり</th>
-                <th className="py-2 text-right">実績</th>
-                <th className="py-2 text-right">比率</th>
+                <th scope="col" className="py-2">
+                  タスク
+                </th>
+                <th scope="col" className="py-2 text-right">
+                  見積もり
+                </th>
+                <th scope="col" className="py-2 text-right">
+                  実績
+                </th>
+                <th scope="col" className="py-2 text-right">
+                  比率
+                </th>
               </tr>
             </thead>
             <tbody>
