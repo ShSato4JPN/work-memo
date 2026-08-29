@@ -2061,6 +2061,14 @@ git commit -m "feat: タスク一覧画面を追加"
 - Consumes: `sumByCategory`, `dailyTotals`, `countInterruptions`, `averageFocusMin`, `estimateComparisons`, `toDateKey`（すべて Task 3）
 - Produces: `getAnalytics(period: "day" | "week" | "month", now?: Date): Promise<AnalyticsView>`
 
+- [ ] **Step 0: recharts をインストールする**
+
+Task 5 の `npx shadcn add chart` で入る場合もあるが、確実にするため明示的に入れる。
+
+```bash
+npm install recharts@3.10.1
+```
+
 - [ ] **Step 1: 分析クエリを書く**
 
 `src/server/queries/analytics.ts`:
