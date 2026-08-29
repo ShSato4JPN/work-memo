@@ -1,4 +1,4 @@
-import { endOfDay, startOfDay } from "date-fns";
+import { differenceInHours, endOfDay, startOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { sumByCategory, toDateKey, type CategoryTotal } from "@/lib/aggregate";
 
@@ -27,6 +27,8 @@ export type TodayView = {
   totalMinutes: number;
   activeTasks: { id: number; title: string; categoryName: string }[];
   categories: { id: number; name: string; color: string }[];
+  /** 開始から8時間以上経過した計測中エントリ。Stop 忘れの可能性が高い */
+  staleRunning: { entryId: number; title: string; startedAt: Date } | null;
 };
 
 export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
@@ -83,6 +85,16 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
     now,
   );
 
+  const STALE_THRESHOLD_HOURS = 8;
+  const staleRunning =
+    runningRaw && differenceInHours(now, runningRaw.startedAt) >= STALE_THRESHOLD_HOURS
+      ? {
+          entryId: runningRaw.id,
+          title: runningRaw.task.title,
+          startedAt: runningRaw.startedAt,
+        }
+      : null;
+
   return {
     running: runningRaw
       ? {
@@ -107,5 +119,6 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
       name: category.name,
       color: category.color,
     })),
+    staleRunning,
   };
 }

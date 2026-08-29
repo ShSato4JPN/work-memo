@@ -1,4 +1,5 @@
 import { RunningTimer } from "@/components/running-timer";
+import { StaleEntryDialog } from "@/components/stale-entry-dialog";
 import { StartPanel } from "@/components/start-panel";
 import { TodayLog } from "@/components/today-log";
 import { getTodayView } from "@/server/queries/today";
@@ -11,6 +12,14 @@ export default async function TodayPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
       <h1 className="text-2xl font-bold">今日</h1>
+
+      {view.staleRunning && (
+        <StaleEntryDialog
+          entryId={view.staleRunning.entryId}
+          title={view.staleRunning.title}
+          startedAt={view.staleRunning.startedAt}
+        />
+      )}
 
       {view.running ? (
         <RunningTimer
