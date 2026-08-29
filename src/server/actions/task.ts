@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { createTaskRecord } from "./task-core";
 
 export type TaskStatus = "todo" | "doing" | "done";
 
@@ -12,12 +13,7 @@ export async function createTask(input: {
   categoryId: number;
   estimateMin: number | null;
 }): Promise<number> {
-  const title = input.title.trim();
-  if (title === "") throw new Error("タスク名を入力してください");
-
-  const task = await prisma.task.create({
-    data: { title, categoryId: input.categoryId, estimateMin: input.estimateMin },
-  });
+  const task = await createTaskRecord(prisma, input);
 
   revalidatePath("/tasks");
   return task.id;

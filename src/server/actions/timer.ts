@@ -1,7 +1,9 @@
 "use server";
 
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { createTaskRecord } from "./task-core";
 
 export async function getRunningEntry(): Promise<{
   id: number;
@@ -16,28 +18,37 @@ export async function getRunningEntry(): Promise<{
 }
 
 /**
- * 計測を開始する。
+ * 計測開始の中身。`tx` を受け取ることで `startTimer` 単体からも、
+ * `createTaskAndStart` のようにタスク作成と同じトランザクション内からも呼べる。
+ *
  * 既に計測中のエントリがあれば、それを終了させたうえで
  * 新しいエントリの parentEntryId に設定する（＝割り込みとして記録する）。
+ * ただし計測中のタスクと同じタスクを再度 Start した場合は、
+ * 自分自身への割り込みという偽の記録を作らないよう何もしない（no-op）。
  */
-export async function startTimer(taskId: number): Promise<void> {
+async function startTimerInTx(tx: Prisma.TransactionClient, taskId: number): Promise<void> {
   const now = new Date();
+  const running = await tx.entry.findFirst({ where: { endedAt: null } });
 
-  await prisma.$transaction(async (tx) => {
-    const running = await tx.entry.findFirst({ where: { endedAt: null } });
+  if (running && running.taskId === taskId) {
+    return;
+  }
 
-    if (running) {
-      // 経過0秒だと CHECK 制約 (ended_at > started_at) に触れるため1ミリ秒進める
-      const endedAt = now > running.startedAt ? now : new Date(running.startedAt.getTime() + 1);
-      await tx.entry.update({ where: { id: running.id }, data: { endedAt } });
-    }
+  if (running) {
+    // 経過0秒のエントリを作らないよう1ミリ秒進める（DB 上の制約ではなく、意味のある区間にするための調整）
+    const endedAt = now > running.startedAt ? now : new Date(running.startedAt.getTime() + 1);
+    await tx.entry.update({ where: { id: running.id }, data: { endedAt } });
+  }
 
-    await tx.entry.create({
-      data: { taskId, startedAt: now, parentEntryId: running?.id ?? null },
-    });
-
-    await tx.task.update({ where: { id: taskId }, data: { status: "doing" } });
+  await tx.entry.create({
+    data: { taskId, startedAt: now, parentEntryId: running?.id ?? null },
   });
+
+  await tx.task.update({ where: { id: taskId }, data: { status: "doing" } });
+}
+
+export async function startTimer(taskId: number): Promise<void> {
+  await prisma.$transaction((tx) => startTimerInTx(tx, taskId));
 
   revalidatePath("/");
 }
@@ -47,6 +58,7 @@ export async function stopTimer(): Promise<void> {
   if (!running) return;
 
   const now = new Date();
+  // 経過0秒のエントリを作らないよう1ミリ秒進める（DB 上の制約ではなく、意味のある区間にするための調整）
   const endedAt = now > running.startedAt ? now : new Date(running.startedAt.getTime() + 1);
   await prisma.entry.update({ where: { id: running.id }, data: { endedAt } });
 
@@ -58,15 +70,13 @@ export async function createTaskAndStart(input: {
   categoryId: number;
   estimateMin: number | null;
 }): Promise<void> {
-  const title = input.title.trim();
-  if (title === "") throw new Error("タスク名を入力してください");
-
-  const task = await prisma.task.create({
-    data: { title, categoryId: input.categoryId, estimateMin: input.estimateMin },
+  await prisma.$transaction(async (tx) => {
+    const task = await createTaskRecord(tx, input);
+    await startTimerInTx(tx, task.id);
   });
 
-  await startTimer(task.id);
   revalidatePath("/tasks");
+  revalidatePath("/");
 }
 
 /** Stop 忘れなどの時刻を後から修正する */

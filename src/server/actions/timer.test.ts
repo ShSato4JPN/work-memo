@@ -73,6 +73,37 @@ describe("タイマー操作", () => {
     expect(runningCount).toBe(1);
   });
 
+  it("同じタスクを連続で startTimer しても新しいエントリを作らない（自己割り込みを記録しない）", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+    });
+
+    await startTimer(task.id);
+    const first = await getRunningEntry();
+    await startTimer(task.id);
+    const second = await getRunningEntry();
+
+    expect(second?.id).toBe(first!.id);
+    expect(await prisma.entry.count({ where: { taskId: task.id } })).toBe(1);
+
+    const currentEntry = await prisma.entry.findUniqueOrThrow({ where: { id: second!.id } });
+    expect(currentEntry.parentEntryId).toBeNull();
+  });
+
+  it("部分ユニークインデックスにより計測中のエントリを直接2件目作ろうとすると拒否される", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+    });
+
+    await startTimer(task.id);
+
+    await expect(
+      prisma.entry.create({ data: { taskId: task.id, startedAt: new Date() } }),
+    ).rejects.toThrow();
+  });
+
   it("stopTimer で計測中のエントリがなくなる", async () => {
     const category = await seedCategory();
     const task = await prisma.task.create({
