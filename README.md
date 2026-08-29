@@ -6,7 +6,7 @@
 ## 開発の始め方
 
 ```bash
-npm install
+npm install                   # postinstall で prisma generate が走る
 cp .env.example .env          # DATABASE_URL="file:./prisma/dev.db"
 npx prisma migrate deploy     # DB を作成（既存 DB があればそのまま）
 npx prisma db seed            # カテゴリの初期データを投入
