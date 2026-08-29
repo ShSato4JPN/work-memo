@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { minutesOnDate, splitEntryByDay, type EntryLike } from "./aggregate";
 import { sumByCategory, taskActualMinutes, type CategoryLike, type TaskLike } from "./aggregate";
-import { averageFocusMin, dailyTotals, estimateComparisons } from "./aggregate";
+import {
+  averageFocusMin,
+  dailyTotals,
+  estimateComparisons,
+  estimateSummary,
+  unestimatedWork,
+  unionMinutes,
+} from "./aggregate";
 
 function entry(partial: Partial<EntryLike> & { startedAt: Date }): EntryLike {
   return {
@@ -349,5 +356,160 @@ describe("dailyTotals", () => {
       { date: "2026-08-29", byCategory: [{ categoryId: 1, minutes: 60 }] },
       { date: "2026-08-30", byCategory: [] },
     ]);
+  });
+});
+
+describe("unionMinutes", () => {
+  const from = new Date(2026, 7, 30, 0, 0);
+  const to = new Date(2026, 7, 30, 23, 59, 59, 999);
+  const now = new Date(2026, 7, 30, 12, 0);
+
+  it("重なりがなければ各記録の合計と一致する", () => {
+    const entries = [
+      entry({ startedAt: new Date(2026, 7, 30, 9, 0), endedAt: new Date(2026, 7, 30, 10, 0) }),
+      entry({ startedAt: new Date(2026, 7, 30, 11, 0), endedAt: new Date(2026, 7, 30, 11, 30) }),
+    ];
+
+    expect(unionMinutes(entries, from, to, now)).toBe(90);
+  });
+
+  // 並行計測を許しているので、単純な合計は実経過を超えうる。その差を出せることを固定する
+  it("重なった時間は二重に数えない", () => {
+    const entries = [
+      entry({
+        id: 1,
+        startedAt: new Date(2026, 7, 30, 9, 0),
+        endedAt: new Date(2026, 7, 30, 10, 0),
+      }),
+      entry({
+        id: 2,
+        taskId: 2,
+        startedAt: new Date(2026, 7, 30, 9, 30),
+        endedAt: new Date(2026, 7, 30, 10, 30),
+      }),
+    ];
+
+    expect(unionMinutes(entries, from, to, now)).toBe(90);
+  });
+
+  it("片方が他方を完全に含む場合は長いほうだけを数える", () => {
+    const entries = [
+      entry({
+        id: 1,
+        startedAt: new Date(2026, 7, 30, 9, 0),
+        endedAt: new Date(2026, 7, 30, 12, 0),
+      }),
+      entry({
+        id: 2,
+        taskId: 2,
+        startedAt: new Date(2026, 7, 30, 10, 0),
+        endedAt: new Date(2026, 7, 30, 11, 0),
+      }),
+    ];
+
+    expect(unionMinutes(entries, from, to, now)).toBe(180);
+  });
+
+  it("計測中の記録は now までを数える", () => {
+    const entries = [entry({ startedAt: new Date(2026, 7, 30, 11, 0), endedAt: null })];
+
+    expect(unionMinutes(entries, from, to, now)).toBe(60);
+  });
+
+  it("期間の外にはみ出した分は切り落とす", () => {
+    const entries = [
+      entry({ startedAt: new Date(2026, 7, 29, 23, 0), endedAt: new Date(2026, 7, 30, 1, 0) }),
+    ];
+
+    expect(unionMinutes(entries, from, to, now)).toBe(60);
+  });
+
+  it("記録がなければ0", () => {
+    expect(unionMinutes([], from, to, now)).toBe(0);
+  });
+});
+
+describe("unestimatedWork", () => {
+  const now = new Date(2026, 7, 30, 12, 0);
+
+  function task(partial: Partial<TaskLike> & { id: number; title: string }): TaskLike {
+    return { categoryId: 1, estimateMin: null, ...partial };
+  }
+
+  it("見積もりがなく実績のあるタスクを、多い順に返す", () => {
+    const tasks = [
+      task({ id: 1, title: "障害調査" }),
+      task({ id: 2, title: "レビュー" }),
+      task({ id: 3, title: "見積もりあり", estimateMin: 60 }),
+    ];
+    const entries = [
+      entry({
+        id: 1,
+        taskId: 1,
+        startedAt: new Date(2026, 7, 30, 9, 0),
+        endedAt: new Date(2026, 7, 30, 10, 0),
+      }),
+      entry({
+        id: 2,
+        taskId: 2,
+        startedAt: new Date(2026, 7, 30, 10, 0),
+        endedAt: new Date(2026, 7, 30, 12, 0),
+      }),
+      entry({
+        id: 3,
+        taskId: 3,
+        startedAt: new Date(2026, 7, 30, 8, 0),
+        endedAt: new Date(2026, 7, 30, 8, 30),
+      }),
+    ];
+
+    expect(unestimatedWork(tasks, entries, now)).toEqual([
+      { taskId: 2, title: "レビュー", actualMin: 120 },
+      { taskId: 1, title: "障害調査", actualMin: 60 },
+    ]);
+  });
+
+  it("実績が0のタスクは含めない", () => {
+    const tasks = [task({ id: 1, title: "未着手" })];
+
+    expect(unestimatedWork(tasks, [], now)).toEqual([]);
+  });
+
+  // 見積もり0は「見積もっていない」と同じ扱い（estimateComparisons も対象外にしている）
+  it("見積もり0のタスクも見積もりなしとして扱う", () => {
+    const tasks = [task({ id: 1, title: "ゼロ見積もり", estimateMin: 0 })];
+    const entries = [
+      entry({
+        taskId: 1,
+        startedAt: new Date(2026, 7, 30, 9, 0),
+        endedAt: new Date(2026, 7, 30, 9, 30),
+      }),
+    ];
+
+    expect(unestimatedWork(tasks, entries, now)).toEqual([
+      { taskId: 1, title: "ゼロ見積もり", actualMin: 30 },
+    ]);
+  });
+});
+
+describe("estimateSummary", () => {
+  it("合計と超過件数をまとめる", () => {
+    const summary = estimateSummary([
+      { taskId: 1, title: "A", estimateMin: 60, actualMin: 90, diffMin: 30, ratio: 1.5 },
+      { taskId: 2, title: "B", estimateMin: 40, actualMin: 30, diffMin: -10, ratio: 0.75 },
+    ]);
+
+    expect(summary).toEqual({
+      taskCount: 2,
+      overCount: 1,
+      totalEstimateMin: 100,
+      totalActualMin: 120,
+      diffMin: 20,
+      ratio: 1.2,
+    });
+  });
+
+  it("比較対象がなければ null", () => {
+    expect(estimateSummary([])).toBeNull();
   });
 });

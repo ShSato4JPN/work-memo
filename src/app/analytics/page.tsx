@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CategoryPie } from "@/components/category-pie";
 import { DailyStackChart } from "@/components/daily-stack-chart";
 import { getAnalytics, type Period } from "@/server/queries/analytics";
@@ -13,6 +14,13 @@ const PERIODS: { label: string; value: Period }[] = [
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "day" || value === "week" || value === "month";
+}
+
+/** 差分は符号を必ず付ける。「+30分」と「-30分」を見間違えないようにするため */
+function formatDiff(minutes: number): string {
+  const rounded = Math.round(minutes);
+  if (rounded === 0) return "±0分";
+  return rounded > 0 ? `+${formatDuration(rounded)}` : `-${formatDuration(-rounded)}`;
 }
 
 function formatDuration(minutes: number): string {
@@ -37,6 +45,9 @@ export default async function AnalyticsPage({
   searchParams: Promise<{ period?: string }>;
 }) {
   const { period } = await searchParams;
+  // 不正な値を黙って読み替えると、ブックマークした URL と表示が食い違ったままになる。
+  // 正しい URL に直してから描画する。
+  if (period !== undefined && !isPeriod(period)) redirect("/analytics?period=week");
   const selected: Period = isPeriod(period) ? period : "week";
   const view = await getAnalytics(selected);
 
@@ -122,26 +133,65 @@ export default async function AnalyticsPage({
         )}
       </Card>
 
-      <Card>
-        <h2 className="text-lg font-bold">日ごとの推移</h2>
-        <div className="mt-3">
-          <DailyStackChart daily={view.daily} categories={view.categories} />
-        </div>
-      </Card>
+      {/* 「今日」は1本の棒にしかならず、上の円グラフと同じことしか言わないので出さない */}
+      {selected !== "day" && (
+        <Card>
+          <h2 className="text-lg font-bold">日ごとの推移</h2>
+          {view.categories.length === 0 ? (
+            <p className="text-muted-foreground mt-3 text-base">この期間の記録はまだありません。</p>
+          ) : (
+            <div className="mt-3">
+              <DailyStackChart daily={view.daily} categories={view.categories} />
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card>
         <h2 className="text-lg font-bold">見積もりと実績</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          実績はタスクの全期間の合計です。上の「合計時間」（この期間のみ）とは意味が異なります。
+          この期間に作業したタスクが対象です。実績はそのタスクの全期間の合計なので、上の「合計時間」（この期間のみ）とは意味が異なります。
         </p>
+
+        {view.estimateSummary && (
+          <div className="bg-background mt-4 rounded-2xl px-4 py-4">
+            <p className="text-base">
+              見積もりのある{view.estimateSummary.taskCount}件の合計は{" "}
+              <span className="font-bold tabular-nums">
+                見積もり {formatDuration(view.estimateSummary.totalEstimateMin)}
+              </span>{" "}
+              に対して{" "}
+              <span className="font-bold tabular-nums">
+                実績 {formatDuration(view.estimateSummary.totalActualMin)}
+              </span>
+              。
+            </p>
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-bold tabular-nums ${
+                  view.estimateSummary.diffMin > 0
+                    ? "bg-live-soft text-live"
+                    : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                {formatDiff(view.estimateSummary.diffMin)}（見積もりの
+                {view.estimateSummary.ratio.toFixed(1)}倍）
+              </span>
+              <span className="text-muted-foreground text-sm">
+                {view.estimateSummary.taskCount}件中 {view.estimateSummary.overCount}件が超過
+              </span>
+            </p>
+          </div>
+        )}
+
         {view.estimates.length === 0 ? (
           <p className="text-muted-foreground mt-4 text-base">
             見積もりを設定して作業したタスクがまだありません。
           </p>
         ) : (
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-3 space-y-2">
             {view.estimates.map((estimate) => {
-              const over = estimate.ratio > 1;
+              const over = estimate.diffMin > 0;
               return (
                 <li
                   key={estimate.taskId}
@@ -151,24 +201,50 @@ export default async function AnalyticsPage({
                     {estimate.title}
                   </span>
                   <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-                    見積もり {estimate.estimateMin}分
-                  </span>
-                  <span className="shrink-0 text-base font-bold tabular-nums">
+                    見積もり {formatDuration(estimate.estimateMin)} → 実績{" "}
                     {formatDuration(estimate.actualMin)}
                   </span>
+                  {/* 超過だけでなく、どれだけ余ったかも出す。外し方の向きが分からないと振り返れない */}
                   <span
                     className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold tabular-nums ${
                       over ? "bg-live-soft text-live" : "bg-secondary text-muted-foreground"
                     }`}
                   >
-                    {over
-                      ? `${Math.round(estimate.actualMin - estimate.estimateMin)}分オーバー`
-                      : "見積もり内"}
+                    {formatDiff(estimate.diffMin)}
                   </span>
                 </li>
               );
             })}
           </ul>
+        )}
+
+        {/*
+          見積もりを付け忘れた作業こそ振り返りから漏れやすい。
+          上の表に出てこない時間が何分あるのかを、同じカードの中で示す。
+        */}
+        {view.unestimated.length > 0 && (
+          <div className="border-border mt-5 border-t pt-4">
+            <h3 className="text-base font-bold">見積もりなしで作業した分</h3>
+            <p className="text-muted-foreground mt-1 text-sm">
+              合計 {formatDuration(view.unestimated.reduce((sum, work) => sum + work.actualMin, 0))}
+              は上の比較に入っていません。見積もりを入れると次から振り返りの対象になります。
+            </p>
+            <ul className="mt-3 space-y-2">
+              {view.unestimated.map((work) => (
+                <li
+                  key={work.taskId}
+                  className="bg-background flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-4 py-3"
+                >
+                  <span className="min-w-0 flex-1 truncate text-base font-medium">
+                    {work.title}
+                  </span>
+                  <span className="shrink-0 text-base font-bold tabular-nums">
+                    {formatDuration(work.actualMin)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </Card>
     </main>

@@ -24,7 +24,7 @@ export function StaleEntryDialog({
   return (
     <div className="border-destructive space-y-3 rounded-lg border p-4">
       <div>
-        <p className="font-medium">Stop 忘れかもしれません</p>
+        <p className="font-medium">停止し忘れかもしれません</p>
         <p className="text-muted-foreground text-sm">
           「{title}」が {format(startedAt, "M/d HH:mm")} から計測中のままです。
           実際の終了時刻を入れて直せます。
@@ -42,7 +42,11 @@ export function StaleEntryDialog({
           }
           setError(null);
           try {
-            await updateEntryTimes({ entryId, startedAt, endedAt });
+            const result = await updateEntryTimes({ entryId, startedAt, endedAt });
+            if (!result.ok) {
+              setError(result.message);
+              return;
+            }
             setDismissed(true);
           } catch {
             setError("保存に失敗しました。もう一度お試しください。");

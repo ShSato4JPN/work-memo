@@ -80,3 +80,32 @@ export async function updateCategory(input: {
     return { ok: false, message: "カテゴリを変更できませんでした" };
   }
 }
+
+export type DeleteCategoryResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * カテゴリを削除する。
+ *
+ * タスクが1件でも紐づいていれば削除しない。カテゴリは集計の軸そのものなので、
+ * 消すと過去の記録がどの分類だったのか復元できなくなる。archived なタスクも数える
+ * （一覧から隠れているだけで、分析には残っているため）。
+ * 紐づくタスクがなければ、残しても選択肢を増やすだけなので物理削除する。
+ */
+export async function deleteCategory(categoryId: number): Promise<DeleteCategoryResult> {
+  try {
+    const taskCount = await prisma.task.count({ where: { categoryId } });
+    if (taskCount > 0) {
+      return {
+        ok: false,
+        message: `${taskCount}件のタスクで使われているため削除できません。先にタスクのカテゴリを変えてください。`,
+      };
+    }
+
+    await prisma.category.delete({ where: { id: categoryId } });
+  } catch {
+    return { ok: false, message: "カテゴリを削除できませんでした" };
+  }
+
+  revalidateAllViews();
+  return { ok: true };
+}

@@ -18,7 +18,15 @@ export function CategoryPie({ totals }: { totals: CategoryTotal[] }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" outerRadius={100} label>
+        {/* 単位のない数字だけだと何分なのか読めないので、名前と分数をラベルにする */}
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          outerRadius={90}
+          labelLine={false}
+          label={({ name, value }) => `${name} ${value}分`}
+        >
           {data.map((item) => (
             <Cell key={item.name} fill={item.color} />
           ))}

@@ -4,12 +4,16 @@ import {
   averageFocusMin,
   dailyTotals,
   estimateComparisons,
+  estimateSummary,
   sumByCategory,
+  unestimatedWork,
   toDateKey,
   type CategoryTotal,
   type DailyTotal,
   type DateRange,
   type EstimateComparison,
+  type EstimateSummary,
+  type UnestimatedWork,
 } from "@/lib/aggregate";
 
 export type Period = "day" | "week" | "month";
@@ -22,6 +26,9 @@ export type AnalyticsView = {
   totalMinutes: number;
   averageFocusMinutes: number;
   estimates: EstimateComparison[];
+  estimateSummary: EstimateSummary | null;
+  /** 見積もりを付けないまま作業したタスク。比較表から漏れている分を示す */
+  unestimated: UnestimatedWork[];
 };
 
 function resolveRange(period: Period, now: Date): { from: Date; to: Date } {
@@ -81,17 +88,33 @@ export async function getAnalytics(period: Period, now: Date = new Date()): Prom
     parentEntryId: entry.parentEntryId,
   }));
 
+  const comparisons = estimateComparisons(tasks, entriesForEstimate, now);
+
+  const daily = dailyTotals(entries, tasks, range, now);
+
+  // 積み上げグラフの凡例に出すのは、この期間に実際に時間があるカテゴリだけ。
+  // 全カテゴリを並べると、色の付いていない名前ばかりが凡例を埋めて読みにくくなる。
+  const usedCategoryIds = new Set(
+    daily
+      .flatMap((day) => day.byCategory.filter((item) => item.minutes > 0))
+      .map((item) => item.categoryId),
+  );
+
   return {
     range,
     categoryTotals,
-    daily: dailyTotals(entries, tasks, range, now),
-    categories: categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      color: category.color,
-    })),
+    daily,
+    categories: categories
+      .filter((category) => usedCategoryIds.has(category.id))
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        color: category.color,
+      })),
     totalMinutes: categoryTotals.reduce((sum, total) => sum + total.minutes, 0),
     averageFocusMinutes: averageFocusMin(entries, range, now),
-    estimates: estimateComparisons(tasks, entriesForEstimate, now),
+    estimates: comparisons,
+    estimateSummary: estimateSummary(comparisons),
+    unestimated: unestimatedWork(tasks, entriesForEstimate, now),
   };
 }

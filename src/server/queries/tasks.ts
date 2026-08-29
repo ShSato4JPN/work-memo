@@ -5,6 +5,8 @@ import type { TaskStatus } from "@/server/actions/task";
 export type TaskListItem = {
   id: number;
   title: string;
+  /** 編集フォームの初期値に使う */
+  categoryId: number;
   categoryName: string;
   categoryColor: string;
   status: string;
@@ -59,6 +61,7 @@ export async function getTaskList(
     return {
       id: task.id,
       title: task.title,
+      categoryId: task.categoryId,
       categoryName: task.category.name,
       categoryColor: task.category.color,
       status: task.status,

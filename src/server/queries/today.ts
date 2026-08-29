@@ -1,6 +1,12 @@
 import { differenceInHours, endOfDay, startOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
-import { minutesOnDate, sumByCategory, toDateKey, type CategoryTotal } from "@/lib/aggregate";
+import {
+  minutesOnDate,
+  sumByCategory,
+  toDateKey,
+  unionMinutes,
+  type CategoryTotal,
+} from "@/lib/aggregate";
 
 export type TodayViewEntry = {
   id: number;
@@ -28,6 +34,11 @@ export type TodayView = {
   entries: TodayViewEntry[];
   categoryTotals: CategoryTotal[];
   totalMinutes: number;
+  /**
+   * 記録が重なっている分を二重に数えない、実際に経過した時間（分）。
+   * 並行計測を許しているため totalMinutes はこれを超えることがある。
+   */
+  elapsedMinutes: number;
   activeTasks: { id: number; title: string; categoryName: string }[];
   categories: { id: number; name: string; color: string }[];
   /** 開始から8時間以上経過した計測中エントリ。Stop 忘れの可能性が高い */
@@ -125,6 +136,18 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
     entries,
     categoryTotals,
     totalMinutes: categoryTotals.reduce((sum, total) => sum + total.minutes, 0),
+    elapsedMinutes: unionMinutes(
+      rawEntries.map((entry) => ({
+        id: entry.id,
+        taskId: entry.taskId,
+        startedAt: entry.startedAt,
+        endedAt: entry.endedAt,
+        parentEntryId: entry.parentEntryId,
+      })),
+      from,
+      to,
+      now,
+    ),
     activeTasks: tasks.map((task) => ({
       id: task.id,
       title: task.title,

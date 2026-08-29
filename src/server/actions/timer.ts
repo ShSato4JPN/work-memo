@@ -46,7 +46,12 @@ export async function startTimer(taskId: number): Promise<void> {
  */
 export async function stopTimer(taskId: number): Promise<void> {
   const running = await prisma.entry.findFirst({ where: { taskId, endedAt: null } });
-  if (!running) return;
+  if (!running) {
+    // 別のタブで既に停止済みのことがある。何もせず戻ると押した側の画面が古いままになり、
+    // 「ボタンが効かない」ように見えるので、対象がなくても必ず画面を作り直す。
+    revalidateAllViews();
+    return;
+  }
 
   const now = new Date();
   // 経過0秒のエントリを作らないよう1ミリ秒進める（意味のある区間にするための調整）
@@ -99,13 +104,42 @@ export async function createTaskAndStart(input: {
 }
 
 /** Stop 忘れなどの時刻を後から修正する */
-export async function updateEntryTimes(input: {
-  entryId: number;
-  startedAt: Date;
-  endedAt: Date | null;
-}): Promise<void> {
+export type UpdateEntryTimesResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * 入力欄が分単位なので、クライアントとサーバの時計のわずかなずれで
+ * 「いま」を指定しただけの操作が弾かれないよう1分だけ猶予を持たせる。
+ */
+const FUTURE_TOLERANCE_MS = 60 * 1000;
+
+/**
+ * 記録の開始・終了時刻を手で直す。
+ *
+ * 未来の時刻を拒む理由：計測中のエントリに未来の開始時刻を入れると、経過が負になって
+ * 集計から丸ごと消え、そのまま停止すると「開始＝終了」という、この関数自身が不正と
+ * 判定する記録が確定してしまう。実際に作業した時間が復元できなくなるため入口で止める。
+ *
+ * 失敗は例外ではなく結果として返す。時刻の打ち間違いは通常操作で、
+ * エラー画面に落とさず入力欄のそばに理由を出したいため。
+ */
+export async function updateEntryTimes(
+  input: {
+    entryId: number;
+    startedAt: Date;
+    endedAt: Date | null;
+  },
+  now: Date = new Date(),
+): Promise<UpdateEntryTimesResult> {
+  const limit = now.getTime() + FUTURE_TOLERANCE_MS;
+
+  if (input.startedAt.getTime() > limit) {
+    return { ok: false, message: "開始時刻に未来は指定できません" };
+  }
+  if (input.endedAt !== null && input.endedAt.getTime() > limit) {
+    return { ok: false, message: "終了時刻に未来は指定できません" };
+  }
   if (input.endedAt !== null && input.endedAt <= input.startedAt) {
-    throw new Error("終了時刻は開始時刻より後にしてください");
+    return { ok: false, message: "終了時刻は開始時刻より後にしてください" };
   }
 
   await prisma.entry.update({
@@ -114,4 +148,5 @@ export async function updateEntryTimes(input: {
   });
 
   revalidateAllViews();
+  return { ok: true };
 }

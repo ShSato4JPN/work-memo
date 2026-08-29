@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DayTimeline } from "@/components/day-timeline";
 import { StaleEntryDialog } from "@/components/stale-entry-dialog";
 import { TodayLog } from "@/components/today-log";
@@ -17,6 +18,11 @@ export default async function TodayPage() {
   const now = new Date();
   const view = await getTodayView(now);
 
+  // 合計0分のときに 0/0 で NaN や「100%」を出さないための割合計算
+  const share = (minutes: number) =>
+    view.totalMinutes > 0 ? (minutes / view.totalMinutes) * 100 : 0;
+  const overlapMinutes = view.totalMinutes - view.elapsedMinutes;
+
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-4 pb-16">
       {view.staleRunning && (
@@ -30,16 +36,35 @@ export default async function TodayPage() {
 
       <section className="bg-card rounded-3xl p-6 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="text-xl font-bold">今日の合計</h1>
+          <h1 className="text-xl font-bold">今日の計測時間</h1>
           <p className="text-3xl font-extrabold tabular-nums">
             {formatDuration(view.totalMinutes)}
           </p>
         </div>
 
-        {view.categoryTotals.length === 0 ? (
-          <p className="text-muted-foreground mt-4 text-base">
-            まだ記録がありません。上の「開始」から始められます。
+        {/*
+          並行計測を許しているので、カテゴリ別を足した値は実際に過ぎた時間を超えうる。
+          「合計」だけを出すと数字が盛られて見えるため、重なっている分を明示する。
+        */}
+        {overlapMinutes >= 1 && (
+          <p className="text-muted-foreground mt-2 text-sm">
+            うち {formatDuration(overlapMinutes)} は並行して計測した重複分です（実際の経過は
+            {formatDuration(view.elapsedMinutes)}）。
           </p>
+        )}
+
+        {view.categoryTotals.length === 0 ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-muted-foreground text-base">
+              まだ今日の記録がありません。「タスク」でタスクを追加し、その行の「開始」を押すと計測が始まります。
+            </p>
+            <Link
+              href="/tasks"
+              className="bg-primary focus-visible:ring-primary inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
+            >
+              タスクへ移動
+            </Link>
+          </div>
         ) : (
           <>
             <div className="mt-5 flex h-4 gap-1 overflow-hidden rounded-full">
@@ -49,7 +74,7 @@ export default async function TodayPage() {
                   className="first:rounded-l-full last:rounded-r-full"
                   style={{
                     backgroundColor: total.color,
-                    width: `${(total.minutes / view.totalMinutes) * 100}%`,
+                    width: `${share(total.minutes)}%`,
                   }}
                   title={`${total.name} ${formatDuration(total.minutes)}`}
                 />
@@ -72,7 +97,7 @@ export default async function TodayPage() {
                     {formatDuration(total.minutes)}
                   </span>
                   <span className="text-muted-foreground w-11 text-right text-sm tabular-nums">
-                    {((total.minutes / view.totalMinutes) * 100).toFixed(0)}%
+                    {share(total.minutes).toFixed(0)}%
                   </span>
                 </li>
               ))}

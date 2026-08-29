@@ -240,7 +240,9 @@ describe("タイマー操作", () => {
 
     const startedAt = new Date(2026, 7, 29, 9, 0);
     const endedAt = new Date(2026, 7, 29, 10, 0);
-    await updateEntryTimes({ entryId: running!.id, startedAt, endedAt });
+    expect(await updateEntryTimes({ entryId: running!.id, startedAt, endedAt })).toEqual({
+      ok: true,
+    });
 
     const updated = await prisma.entry.findUniqueOrThrow({ where: { id: running!.id } });
     expect(updated.startedAt).toEqual(startedAt);
@@ -257,12 +259,85 @@ describe("タイマー操作", () => {
     await startTimer(task.id);
     const running = await getRunningEntry(task.id);
 
-    await expect(
-      updateEntryTimes({
+    const result = await updateEntryTimes({
+      entryId: running!.id,
+      startedAt: new Date(2026, 7, 29, 10, 0),
+      endedAt: new Date(2026, 7, 29, 9, 0),
+    });
+
+    expect(result).toEqual({ ok: false, message: "終了時刻は開始時刻より後にしてください" });
+  });
+
+  // 未来の開始時刻を許すと、経過が負になって集計から消え、そのまま停止すると
+  // 開始＝終了の記録が確定して実際に作業した時間が失われる。入口で止まることを固定する。
+  it("計測中のエントリに未来の開始時刻は保存できず、元の時刻が保たれる", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+    });
+
+    await startTimer(task.id);
+    const running = await getRunningEntry(task.id);
+
+    const now = new Date();
+    const result = await updateEntryTimes(
+      {
         entryId: running!.id,
-        startedAt: new Date(2026, 7, 29, 10, 0),
-        endedAt: new Date(2026, 7, 29, 9, 0),
-      }),
-    ).rejects.toThrow();
+        startedAt: new Date(now.getTime() + 60 * 60 * 1000),
+        endedAt: null,
+      },
+      now,
+    );
+
+    expect(result).toEqual({ ok: false, message: "開始時刻に未来は指定できません" });
+
+    const unchanged = await prisma.entry.findUniqueOrThrow({ where: { id: running!.id } });
+    expect(unchanged.startedAt).toEqual(running!.startedAt);
+    expect(unchanged.endedAt).toBeNull();
+  });
+
+  it("未来の終了時刻も保存できない", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+    });
+
+    await startTimer(task.id);
+    const running = await getRunningEntry(task.id);
+
+    const now = new Date();
+    const result = await updateEntryTimes(
+      {
+        entryId: running!.id,
+        startedAt: new Date(now.getTime() - 60 * 60 * 1000),
+        endedAt: new Date(now.getTime() + 60 * 60 * 1000),
+      },
+      now,
+    );
+
+    expect(result).toEqual({ ok: false, message: "終了時刻に未来は指定できません" });
+  });
+
+  // 入力欄は分単位なので、いまの時刻を選んだだけの操作が時計のずれで弾かれてはいけない
+  it("いまの時刻ちょうどは未来として弾かれない", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+    });
+
+    await startTimer(task.id);
+    const running = await getRunningEntry(task.id);
+
+    const now = new Date();
+    const result = await updateEntryTimes(
+      {
+        entryId: running!.id,
+        startedAt: new Date(now.getTime() - 60 * 60 * 1000),
+        endedAt: now,
+      },
+      now,
+    );
+
+    expect(result).toEqual({ ok: true });
   });
 });

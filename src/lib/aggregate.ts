@@ -49,6 +49,44 @@ export function minutesOnDate(entry: EntryLike, dateKey: string, now: Date): num
     .reduce((sum, slice) => sum + slice.minutes, 0);
 }
 
+/**
+ * 記録が重なっている分を二重に数えない、実際に経過した時間の合計（分）。
+ *
+ * 並行して複数のタスクを計測できるので、カテゴリ別の合計を足した値は
+ * 実際に過ぎた時間を超えることがある。「合計」として出している数字が
+ * 何分ぶん重複しているのかを示すために、その基準としてこれを使う。
+ */
+export function unionMinutes(entries: EntryLike[], from: Date, to: Date, now: Date): number {
+  const spans = entries
+    .map((entry) => {
+      const end = entry.endedAt ?? now;
+      return {
+        start: Math.max(entry.startedAt.getTime(), from.getTime()),
+        end: Math.min(end.getTime(), to.getTime()),
+      };
+    })
+    .filter((span) => span.end > span.start)
+    .sort((a, b) => a.start - b.start);
+
+  let total = 0;
+  let mergedStart: number | null = null;
+  let mergedEnd = 0;
+
+  for (const span of spans) {
+    if (mergedStart === null || span.start > mergedEnd) {
+      if (mergedStart !== null) total += mergedEnd - mergedStart;
+      mergedStart = span.start;
+      mergedEnd = span.end;
+      continue;
+    }
+    // 重なっている、または隣り合っているので同じ区間として伸ばす
+    if (span.end > mergedEnd) mergedEnd = span.end;
+  }
+  if (mergedStart !== null) total += mergedEnd - mergedStart;
+
+  return total / MS_PER_MIN;
+}
+
 export type TaskLike = {
   id: number;
   title: string;
@@ -131,6 +169,68 @@ export type EstimateComparison = {
   diffMin: number;
   ratio: number;
 };
+
+export type UnestimatedWork = {
+  taskId: number;
+  title: string;
+  actualMin: number;
+};
+
+/**
+ * 見積もりを設定しないまま作業したタスクと、その実績（分）。多い順。
+ *
+ * 見積もりと実績の比較表は見積もりのあるタスクしか出せないが、見積もりを付け忘れた
+ * 作業こそ振り返りから漏れやすい。何分ぶんが比較の対象外になっているかを示すために使う。
+ */
+export function unestimatedWork(
+  tasks: TaskLike[],
+  entries: EntryLike[],
+  now: Date,
+): UnestimatedWork[] {
+  const actuals = taskActualMinutes(entries, now);
+
+  return tasks
+    .filter((task) => task.estimateMin === null || task.estimateMin <= 0)
+    .map((task) => ({
+      taskId: task.id,
+      title: task.title,
+      actualMin: actuals.get(task.id) ?? 0,
+    }))
+    .filter((work) => work.actualMin > 0)
+    .sort((a, b) => b.actualMin - a.actualMin);
+}
+
+export type EstimateSummary = {
+  taskCount: number;
+  overCount: number;
+  totalEstimateMin: number;
+  totalActualMin: number;
+  /** 実績 − 見積もりの合計（分）。正なら超過 */
+  diffMin: number;
+  /** 実績 ÷ 見積もり。1.4 なら見積もりの1.4倍かかっている */
+  ratio: number;
+};
+
+/**
+ * 見積もり比較の全体像。1件ずつの表だけでは「自分は普段どれくらい外すのか」が読めないため、
+ * 合計と超過件数をまとめて返す。比較対象が無ければ null。
+ */
+export function estimateSummary(comparisons: EstimateComparison[]): EstimateSummary | null {
+  if (comparisons.length === 0) return null;
+
+  const totalEstimateMin = comparisons.reduce((sum, item) => sum + item.estimateMin, 0);
+  const totalActualMin = comparisons.reduce((sum, item) => sum + item.actualMin, 0);
+
+  return {
+    taskCount: comparisons.length,
+    overCount: comparisons.filter((item) => item.diffMin > 0).length,
+    totalEstimateMin,
+    totalActualMin,
+    diffMin: totalActualMin - totalEstimateMin,
+    // estimateComparisons が estimateMin > 0 のタスクだけを返すので 0 除算にはならない
+    ratio: totalActualMin / totalEstimateMin,
+  };
+}
 
 /**
  * 1エントリあたりの平均継続時間（分）。集中の途切れにくさの指標。

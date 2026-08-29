@@ -2,9 +2,11 @@
 
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { updateTaskStatus } from "@/server/actions/task";
+import { deleteTask, updateTask, updateTaskStatus } from "@/server/actions/task";
 import { startTimer, stopTimer } from "@/server/actions/timer";
 import type { TaskListItem } from "@/server/queries/tasks";
+
+type Category = { id: number; name: string; color: string };
 
 function formatDuration(minutes: number): string {
   const rounded = Math.round(minutes);
@@ -22,19 +24,35 @@ function formatClock(totalSeconds: number): string {
   return `${hours}:${mmss}`;
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  todo: "未着手",
+  doing: "進行中",
+  done: "完了",
+};
+
 /**
- * タスク1件の行。開始・停止・完了と経過時間の表示がこの行で完結する。
+ * タスク1件の行。開始・停止・完了・編集・削除と経過時間の表示がこの行で完結する。
  *
  * 表示する時間は「完了した分（finishedMin）＋ いま計測中の経過」。
  * 経過は 1 秒ごとに startedAt からの差分を計算し直すので、クライアントに溜め込まない。
  */
-export function TaskRow({ task }: { task: TaskListItem }) {
+export function TaskRow({ task, categories }: { task: TaskListItem; categories: Category[] }) {
   const running = task.runningSince !== null;
   const startedAtMs = task.runningSince?.getTime() ?? null;
 
   const [sessionSeconds, setSessionSeconds] = useState(() =>
     startedAtMs === null ? 0 : Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)),
   );
+
+  const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [categoryId, setCategoryId] = useState(String(task.categoryId));
+  const [estimate, setEstimate] = useState(
+    task.estimateMin === null ? "" : String(task.estimateMin),
+  );
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (startedAtMs === null) return;
@@ -57,6 +75,170 @@ export function TaskRow({ task }: { task: TaskListItem }) {
     task.estimateMin !== null && task.estimateMin > 0
       ? Math.min(totalMin / task.estimateMin, 1)
       : null;
+
+  // 記録が1件でもあるタスクは、削除しても集計を保つため一覧から隠すだけになる
+  const hasRecords = task.lastWorkedAt !== null;
+
+  function cancelEdit() {
+    // 編集前の値に戻してから閉じる
+    setTitle(task.title);
+    setCategoryId(String(task.categoryId));
+    setEstimate(task.estimateMin === null ? "" : String(task.estimateMin));
+    setError(null);
+    setConfirmingDelete(false);
+    setEditing(false);
+  }
+
+  async function save() {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await updateTask({
+        id: task.id,
+        title,
+        categoryId: Number(categoryId),
+        estimateMin: estimate.trim() === "" ? null : Number(estimate),
+      });
+      // 重複タイトルなどはサーバが理由を返すので、入力を残したまま見せる
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setEditing(false);
+    } catch {
+      setError("タスクを変更できませんでした。もう一度お試しください。");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function remove() {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await deleteTask(task.id);
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      // 成功すると行そのものが一覧から消えるので、ここで閉じる操作は要らない
+    } catch {
+      setError("タスクを削除できませんでした。もう一度お試しください。");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <li className="bg-card ring-primary/40 rounded-3xl p-5 shadow-sm ring-2">
+        <form
+          action={save}
+          className="space-y-3"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") cancelEdit();
+          }}
+        >
+          <input
+            autoFocus
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            aria-label="タスク名"
+            className="border-input bg-background h-12 w-full rounded-2xl border px-4 text-base outline-none focus-visible:ring-4 focus-visible:ring-current/20"
+          />
+
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-muted-foreground text-sm" htmlFor={`task-category-${task.id}`}>
+              カテゴリ
+            </label>
+            <select
+              id={`task-category-${task.id}`}
+              value={categoryId}
+              onChange={(event) => setCategoryId(event.target.value)}
+              className="border-input bg-background h-11 rounded-xl border px-3 text-sm"
+            >
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+
+            <label
+              className="text-muted-foreground ml-2 text-sm"
+              htmlFor={`task-estimate-${task.id}`}
+            >
+              見積もり
+            </label>
+            <input
+              id={`task-estimate-${task.id}`}
+              type="number"
+              min={1}
+              value={estimate}
+              onChange={(event) => setEstimate(event.target.value)}
+              placeholder="任意"
+              className="border-input bg-background h-11 w-24 rounded-xl border px-3 text-sm tabular-nums"
+            />
+            <span className="text-muted-foreground text-sm">分</span>
+
+            <span className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="text-muted-foreground hover:bg-accent rounded-full px-4 py-2.5 text-sm font-bold"
+              >
+                キャンセル
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="bg-primary focus-visible:ring-primary rounded-full px-6 py-2.5 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none disabled:opacity-60"
+              >
+                {pending ? "保存中…" : "保存"}
+              </button>
+            </span>
+          </div>
+
+          {error && <p className="text-live text-sm font-bold">{error}</p>}
+        </form>
+
+        <div className="border-border mt-4 border-t pt-4">
+          {confirmingDelete ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-muted-foreground flex-1 text-sm">
+                {hasRecords
+                  ? "このタスクを一覧から隠します。記録した時間は分析に残ります。"
+                  : "記録が1件もないので、このタスクを完全に削除します。"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                className="text-muted-foreground hover:bg-accent rounded-full px-4 py-2 text-sm font-bold"
+              >
+                やめる
+              </button>
+              <button
+                type="button"
+                onClick={remove}
+                disabled={pending}
+                className="bg-live focus-visible:ring-live rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none disabled:opacity-60"
+              >
+                {hasRecords ? "隠す" : "削除する"}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="text-live hover:bg-live-soft rounded-full px-4 py-2 text-sm font-bold transition"
+            >
+              このタスクを削除
+            </button>
+          )}
+        </div>
+      </li>
+    );
+  }
 
   return (
     <li
@@ -125,9 +307,17 @@ export function TaskRow({ task }: { task: TaskListItem }) {
           </span>
         )}
 
-        <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-          {task.lastWorkedAt ? `最終 ${format(task.lastWorkedAt, "M/d")}` : "未着手"}
-        </span>
+        {/* 状態と最終作業日は別々に出す。計測中だけ状態が読めなくなるのを避けるため */}
+        {!done && (
+          <span className="bg-secondary text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-bold">
+            {STATUS_LABEL[task.status] ?? task.status}
+          </span>
+        )}
+        {task.lastWorkedAt && (
+          <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+            最終 {format(task.lastWorkedAt, "M/d")}
+          </span>
+        )}
 
         <span className="ml-auto flex shrink-0 items-center gap-2">
           {done ? (
@@ -178,6 +368,14 @@ export function TaskRow({ task }: { task: TaskListItem }) {
               </form>
             </>
           )}
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label={`「${task.title}」を編集`}
+            className="border-input hover:bg-accent focus-visible:ring-ring rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
+          >
+            編集
+          </button>
         </span>
       </div>
     </li>

@@ -30,9 +30,6 @@ export function TodayLog({ entries }: { entries: TodayViewEntry[] }) {
     );
   }
 
-  // 一番長い記録を基準に、行ごとの長さを目で比べられるようにする
-  const longest = Math.max(...entries.map((entry) => entry.todayMinutes), 1);
-
   return (
     <ul className="space-y-2">
       {entries.map((entry) => (
@@ -47,6 +44,8 @@ export function TodayLog({ entries }: { entries: TodayViewEntry[] }) {
               aria-hidden
             />
             <span className="min-w-0 flex-1 truncate text-base font-bold">{entry.title}</span>
+
+            <span className="text-muted-foreground shrink-0 text-sm">{entry.categoryName}</span>
 
             {entry.startedOnEarlierDay && (
               <span className="bg-secondary text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
@@ -68,18 +67,11 @@ export function TodayLog({ entries }: { entries: TodayViewEntry[] }) {
               {timeRangeLabel(entry)}
             </span>
 
-            <span
-              aria-hidden
-              className="bg-gauge-track hidden h-2 min-w-16 flex-1 overflow-hidden rounded-full sm:block"
-            >
-              <span
-                className="block h-full rounded-full"
-                style={{
-                  width: `${Math.max((entry.todayMinutes / longest) * 100, 3)}%`,
-                  backgroundColor: entry.categoryColor,
-                }}
-              />
-            </span>
+            {/*
+              以前ここに置いていた帯グラフは「その日の一番長い記録に対する比率」を描いていたが、
+              その基準が画面のどこにも書かれておらず読み取れなかったので外した。
+              時間の長短を見比べる用途は上の「時間の使い方」のタイムラインが担う。
+            */}
 
             <span className="ml-auto shrink-0">
               <EntryTimeEditor

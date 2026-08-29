@@ -57,7 +57,7 @@ export default async function TasksPage({
       ) : (
         <ul className="space-y-2">
           {tasks.map((task) => (
-            <TaskRow key={task.id} task={task} />
+            <TaskRow key={task.id} task={task} categories={categories} />
           ))}
         </ul>
       )}

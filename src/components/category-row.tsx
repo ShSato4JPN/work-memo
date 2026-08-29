@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CategoryColorPicker } from "@/components/category-color-picker";
-import { updateCategory } from "@/server/actions/category";
+import { deleteCategory, updateCategory } from "@/server/actions/category";
 import type { CategoryListItem } from "@/server/queries/categories";
 
 /**
@@ -12,6 +12,7 @@ import type { CategoryListItem } from "@/server/queries/categories";
  */
 export function CategoryRow({ category }: { category: CategoryListItem }) {
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [name, setName] = useState(category.name);
   const [color, setColor] = useState(category.color);
   const [pending, setPending] = useState(false);
@@ -22,7 +23,26 @@ export function CategoryRow({ category }: { category: CategoryListItem }) {
     setName(category.name);
     setColor(category.color);
     setError(null);
+    setConfirmingDelete(false);
     setEditing(false);
+  }
+
+  async function remove() {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await deleteCategory(category.id);
+      if (!result.ok) {
+        setError(result.message);
+        setConfirmingDelete(false);
+        return;
+      }
+      // 成功すると行そのものが一覧から消えるので、ここで閉じる操作は要らない
+    } catch {
+      setError("カテゴリを削除できませんでした。もう一度お試しください。");
+    } finally {
+      setPending(false);
+    }
   }
 
   async function submit() {
@@ -110,6 +130,44 @@ export function CategoryRow({ category }: { category: CategoryListItem }) {
 
         {error && <p className="text-live text-sm font-bold">{error}</p>}
       </form>
+
+      <div className="border-border mt-4 border-t pt-4">
+        {confirmingDelete ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-muted-foreground flex-1 text-sm">
+              このカテゴリを削除します。元に戻せません。
+            </p>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              className="text-muted-foreground hover:bg-accent rounded-full px-4 py-2 text-sm font-bold"
+            >
+              やめる
+            </button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={pending}
+              className="bg-live focus-visible:ring-live rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none disabled:opacity-60"
+            >
+              削除する
+            </button>
+          </div>
+        ) : category.taskCount === 0 ? (
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(true)}
+            className="text-live hover:bg-live-soft rounded-full px-4 py-2 text-sm font-bold transition"
+          >
+            このカテゴリを削除
+          </button>
+        ) : (
+          // 使用中のカテゴリを消すと、過去の記録がどの分類だったのか復元できなくなる
+          <p className="text-muted-foreground text-sm">
+            タスクで使われているカテゴリは削除できません。
+          </p>
+        )}
+      </div>
     </li>
   );
 }

@@ -20,6 +20,17 @@ export function AddTaskForm({ categories }: Props) {
   const [error, setError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * 入力を直したらエラーを消す。「同じ名前のタスクがあります」を出したまま
+   * 別の名前を打っている状態になり、直したのかどうか分からなくなるため。
+   */
+  function edit<T>(setter: (value: T) => void) {
+    return (value: T) => {
+      setError(null);
+      setter(value);
+    };
+  }
+
   async function submit() {
     const trimmed = title.trim();
     if (trimmed === "") {
@@ -77,7 +88,7 @@ export function AddTaskForm({ categories }: Props) {
           ref={titleRef}
           autoFocus
           value={title}
-          onChange={(event) => setTitle(event.target.value)}
+          onChange={(event) => edit(setTitle)(event.target.value)}
           placeholder="タスク名"
           aria-label="タスク名"
           className="border-input bg-background h-12 w-full rounded-2xl border px-4 text-base outline-none focus-visible:ring-4 focus-visible:ring-current/20"
@@ -90,7 +101,7 @@ export function AddTaskForm({ categories }: Props) {
           <select
             id="add-task-category"
             value={categoryId}
-            onChange={(event) => setCategoryId(event.target.value)}
+            onChange={(event) => edit(setCategoryId)(event.target.value)}
             className="border-input bg-background h-11 rounded-xl border px-3 text-sm"
           >
             {categories.map((category) => (
@@ -108,7 +119,7 @@ export function AddTaskForm({ categories }: Props) {
             type="number"
             min={1}
             value={estimate}
-            onChange={(event) => setEstimate(event.target.value)}
+            onChange={(event) => edit(setEstimate)(event.target.value)}
             placeholder="任意"
             className="border-input bg-background h-11 w-24 rounded-xl border px-3 text-sm tabular-nums"
           />
