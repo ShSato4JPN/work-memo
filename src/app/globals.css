@@ -2,14 +2,18 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-heading: var(--font-plex-sans);
+  --color-live: var(--live);
+  --color-live-soft: var(--live-soft);
+  --color-rule-strong: var(--rule-strong);
+  --color-gauge-track: var(--gauge-track);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,72 +53,86 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* エンジニアリング台帳: 方眼紙の淡い灰緑を地に、青焼きの藍を構造色、印章の赤を「生きている状態」に */
+  --background: #e7e9e4;
+  --foreground: #14181a;
+  --card: #f5f6f3;
+  --card-foreground: #14181a;
+  --popover: #f5f6f3;
+  --popover-foreground: #14181a;
+  --primary: #1d4e6b;
+  --primary-foreground: #f5f6f3;
+  --secondary: #dcdfd8;
+  --secondary-foreground: #14181a;
+  --muted: #dcdfd8;
+  --muted-foreground: #5e6663;
+  --accent: #d6dbd3;
+  --accent-foreground: #14181a;
+  --destructive: #c0392b;
+  --border: #c9cdc6;
+  --input: #c9cdc6;
+  --ring: #1d4e6b;
+  --chart-1: #1d4e6b;
+  --chart-2: #b06f1a;
+  --chart-3: #2f6b52;
+  --chart-4: #c0392b;
+  --chart-5: #6b706c;
+  --radius: 0.25rem;
+  --sidebar: #f5f6f3;
+  --sidebar-foreground: #14181a;
+  --sidebar-primary: #1d4e6b;
+  --sidebar-primary-foreground: #f5f6f3;
+  --sidebar-accent: #d6dbd3;
+  --sidebar-accent-foreground: #14181a;
+  --sidebar-border: #c9cdc6;
+  --sidebar-ring: #1d4e6b;
+
+  /* 計測器の独自トークン */
+  --live: #c0392b;
+  --live-soft: #e8d3cf;
+  --rule-strong: #a9afa6;
+  --gauge-track: #d0d4cb;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #14171a;
+    --foreground: #e4e7e3;
+    --card: #1b1f23;
+    --card-foreground: #e4e7e3;
+    --popover: #1b1f23;
+    --popover-foreground: #e4e7e3;
+    --primary: #6fb3d2;
+    --primary-foreground: #14171a;
+    --secondary: #242a2f;
+    --secondary-foreground: #e4e7e3;
+    --muted: #242a2f;
+    --muted-foreground: #8a928e;
+    --accent: #2c3237;
+    --accent-foreground: #e4e7e3;
+    --destructive: #e85d3c;
+    --border: #2c3237;
+    --input: #2c3237;
+    --ring: #6fb3d2;
+    --chart-1: #6fb3d2;
+    --chart-2: #d99b41;
+    --chart-3: #5aa885;
+    --chart-4: #e85d3c;
+    --chart-5: #8a928e;
+    --sidebar: #1b1f23;
+    --sidebar-foreground: #e4e7e3;
+    --sidebar-primary: #6fb3d2;
+    --sidebar-primary-foreground: #14171a;
+    --sidebar-accent: #2c3237;
+    --sidebar-accent-foreground: #e4e7e3;
+    --sidebar-border: #2c3237;
+    --sidebar-ring: #6fb3d2;
+
+    --live: #e85d3c;
+    --live-soft: #3a2320;
+    --rule-strong: #454d52;
+    --gauge-track: #2c3237;
+  }
 }
 
 @layer base {
@@ -123,8 +141,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "palt" 1;
   }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
+  }
+  /* 時刻と分数は必ず桁を揃える。数字がガタつくと計測器に見えない */
+  .tabular-nums,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
   }
 }
