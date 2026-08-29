@@ -87,7 +87,10 @@ export default async function AnalyticsPage({
       </section>
 
       <section className="space-y-2">
-        <h2 className="font-semibold">見積もりと実績</h2>
+        <h2 className="font-semibold">見積もりと実績（この期間に作業したタスクの全期間合計）</h2>
+        <p className="text-muted-foreground text-xs">
+          実績はタスクの全期間の合計です。上の「合計時間」（この期間だけの合計）とは意味が異なります。
+        </p>
         {view.estimates.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             見積もりを設定して作業したタスクがまだありません。

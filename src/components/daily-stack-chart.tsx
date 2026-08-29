@@ -23,7 +23,7 @@ export function DailyStackChart({
     const row: Record<string, string | number> = { date: day.date.slice(5) };
     for (const category of categories) {
       const found = day.byCategory.find((item) => item.categoryId === category.id);
-      row[category.name] = Math.round(found?.minutes ?? 0);
+      row[String(category.id)] = Math.round(found?.minutes ?? 0);
     }
     return row;
   });
@@ -34,10 +34,16 @@ export function DailyStackChart({
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} unit="分" />
-        <Tooltip formatter={(value) => `${value}分`} />
+        <Tooltip formatter={(value) => (typeof value === "number" ? `${value}分` : "")} />
         <Legend />
         {categories.map((category) => (
-          <Bar key={category.id} dataKey={category.name} stackId="a" fill={category.color} />
+          <Bar
+            key={category.id}
+            dataKey={String(category.id)}
+            name={category.name}
+            stackId="a"
+            fill={category.color}
+          />
         ))}
       </BarChart>
     </ResponsiveContainer>

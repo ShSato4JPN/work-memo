@@ -22,7 +22,7 @@ export function CategoryPie({ totals }: { totals: CategoryTotal[] }) {
             <Cell key={item.name} fill={item.color} />
           ))}
         </Pie>
-        <Tooltip formatter={(value) => `${value}分`} />
+        <Tooltip formatter={(value) => (typeof value === "number" ? `${value}分` : "")} />
       </PieChart>
     </ResponsiveContainer>
   );

@@ -65,6 +65,20 @@ export async function getAnalytics(period: Period, now: Date = new Date()): Prom
 
   const categoryTotals = sumByCategory(entries, tasks, categories, range, now);
 
+  // 見積もり比較は「この期間に作業したタスク」を対象にするが、実績自体は
+  // taskActualMinutes（estimateComparisons が内部で使う）の契約どおり全期間で計算する。
+  // そのため、期間で絞った entries ではなく対象タスクの全エントリを別途取得する。
+  const taskIds = tasks.map((task) => task.id);
+  const rawEntriesForEstimate =
+    taskIds.length > 0 ? await prisma.entry.findMany({ where: { taskId: { in: taskIds } } }) : [];
+  const entriesForEstimate = rawEntriesForEstimate.map((entry) => ({
+    id: entry.id,
+    taskId: entry.taskId,
+    startedAt: entry.startedAt,
+    endedAt: entry.endedAt,
+    parentEntryId: entry.parentEntryId,
+  }));
+
   return {
     range,
     categoryTotals,
@@ -77,6 +91,6 @@ export async function getAnalytics(period: Period, now: Date = new Date()): Prom
     totalMinutes: categoryTotals.reduce((sum, total) => sum + total.minutes, 0),
     interruptionCount: countInterruptions(entries, range),
     averageFocusMinutes: averageFocusMin(entries, range, now),
-    estimates: estimateComparisons(tasks, entries, now),
+    estimates: estimateComparisons(tasks, entriesForEstimate, now),
   };
 }
