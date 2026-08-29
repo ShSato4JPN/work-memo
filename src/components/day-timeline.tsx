@@ -88,7 +88,8 @@ export function DayTimeline({ entries, day, now }: Props) {
   const showNowLine = nowMinute >= 0 && nowMinute <= MINUTES_PER_DAY;
 
   return (
-    <div ref={scrollRef} className="overflow-x-auto">
+    // グラフの下端と水平スクロールバーが近すぎるので、下に余白を取る
+    <div ref={scrollRef} className="overflow-x-auto pb-4">
       <div className="flex" style={{ width: 128 + TRACK_WIDTH }}>
         {/* タスク名の列。横スクロールしても見えるように固定する */}
         <div className="bg-card sticky left-0 z-20 w-32 shrink-0 pr-3">
@@ -133,7 +134,7 @@ export function DayTimeline({ entries, day, now }: Props) {
 
           <ul className="space-y-1">
             {[...rows.entries()].map(([taskId, row]) => (
-              <li key={taskId} className="bg-background relative h-10 overflow-hidden rounded-sm">
+              <li key={taskId} className="bg-background relative h-10 overflow-hidden">
                 {/* 10分ごとの目盛り。1時間の区切りだけ濃くする */}
                 {ticks.map((minute) => (
                   <span
@@ -164,7 +165,7 @@ export function DayTimeline({ entries, day, now }: Props) {
                       // パディングを持たせると box-sizing: border-box で幅が押し広げられ、
                       // 3分の記録が8分ぶんの長さで描かれて目盛りとずれる。
                       // 余白はラベル側に持たせ、バーの幅は実時間だけで決める。
-                      className="absolute inset-y-1 flex items-center overflow-hidden rounded-[2px]"
+                      className="absolute inset-y-1 flex items-center overflow-hidden"
                       style={{
                         left: block.startMinute * PX_PER_MINUTE,
                         // 短い記録でも目盛りと比べられるだけの幅を残す
