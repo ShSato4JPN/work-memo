@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartTooltip } from "@/components/chart-tooltip";
 import type { DailyTotal } from "@/lib/aggregate";
 
 export function DailyStackChart({
@@ -34,7 +35,10 @@ export function DailyStackChart({
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} unit="分" />
-        <Tooltip formatter={(value) => (typeof value === "number" ? `${value}分` : "")} />
+        <Tooltip
+          content={<ChartTooltip labelPrefix="" />}
+          cursor={{ fill: "var(--accent)", radius: 8 }}
+        />
         <Legend />
         {categories.map((category) => (
           <Bar

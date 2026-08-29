@@ -1,8 +1,4 @@
-import { format } from "date-fns";
 import { layoutDay, type TimelineInput } from "@/lib/timeline";
-
-/** 1分あたりの高さ(px)。1時間 = 56px */
-const PX_PER_MINUTE = 56 / 60;
 
 type Props = {
   entries: TimelineInput[];
@@ -10,11 +6,30 @@ type Props = {
   now: Date;
 };
 
+function formatHourLabel(hour: number): string {
+  return `${hour}時`;
+}
+
+function formatMinutes(minutes: number): string {
+  const rounded = Math.round(minutes);
+  if (rounded < 60) return `${rounded}分`;
+  const hours = Math.floor(rounded / 60);
+  const rest = rounded % 60;
+  return rest === 0 ? `${hours}時間` : `${hours}時間${rest}分`;
+}
+
+function clockLabel(minuteOfDay: number): string {
+  const hour = Math.floor(minuteOfDay / 60);
+  const minute = Math.floor(minuteOfDay % 60);
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
 /**
- * 1日を縦の時間軸で見る。並行して計測した作業は横に並ぶ。
+ * 1日を横の時間軸で見る。タスクごとに1行なので、並行して計測した作業も
+ * 重ならずに読める（ガントチャートと同じ並べ方）。
  *
- * 表示する範囲は「記録のある時間帯だけ」に絞る。24時間すべてを出すと
- * 空白ばかりで、実際に何をしていたかが読み取りにくくなるため。
+ * 位置と長さの計算は layoutDay（テスト済みの純粋関数）に任せ、
+ * ここでは行への振り分けと描画だけを行う。
  */
 export function DayTimeline({ entries, day, now }: Props) {
   const blocks = layoutDay(entries, day, now);
@@ -29,94 +44,127 @@ export function DayTimeline({ entries, day, now }: Props) {
 
   const firstMinute = Math.min(...blocks.map((block) => block.startMinute));
   const lastMinute = Math.max(...blocks.map((block) => block.endMinute));
-  // 前後1時間の余白を付けて、時間帯の境目が分かるようにする
+  // 記録のある時間帯だけを、前後1時間の余白付きで描く
   const fromHour = Math.max(0, Math.floor(firstMinute / 60) - 1);
   const toHour = Math.min(24, Math.ceil(lastMinute / 60) + 1);
-  const hours = Array.from({ length: toHour - fromHour }, (_, index) => fromHour + index);
-
+  const spanMinutes = (toHour - fromHour) * 60;
   const offsetMinutes = fromHour * 60;
-  const height = (toHour - fromHour) * 60 * PX_PER_MINUTE;
+  const hours = Array.from({ length: toHour - fromHour + 1 }, (_, index) => fromHour + index);
+
+  const percentOf = (minute: number) => ((minute - offsetMinutes) / spanMinutes) * 100;
+
+  // タスクごとに1行。行の順番は、その日に最初に触った順
+  const rows = new Map<number, { title: string; color: string; blocks: typeof blocks }>();
+  for (const block of blocks) {
+    const row = rows.get(block.taskId);
+    if (row) {
+      row.blocks.push(block);
+    } else {
+      rows.set(block.taskId, {
+        title: block.title,
+        color: block.categoryColor,
+        blocks: [block],
+      });
+    }
+  }
+
   const nowMinute = (now.getTime() - new Date(day).setHours(0, 0, 0, 0)) / 60000;
   const showNowLine = nowMinute >= offsetMinutes && nowMinute <= toHour * 60;
 
+  const lastIndex = hours.length - 1;
+
   return (
-    <div className="flex gap-3">
-      {/* 時刻の目盛り */}
-      <div className="relative shrink-0" style={{ height, width: 44 }} aria-hidden>
-        {hours.map((hour) => (
-          <span
-            key={hour}
-            className="text-muted-foreground absolute right-0 -translate-y-1/2 text-xs tabular-nums"
-            style={{ top: (hour * 60 - offsetMinutes) * PX_PER_MINUTE }}
-          >
-            {String(hour).padStart(2, "0")}:00
-          </span>
-        ))}
-      </div>
+    <div>
+      <div>
+        {/* 時刻の目盛り。両端はコンテナからはみ出さないよう寄せる */}
+        <div className="flex">
+          <div className="w-32 shrink-0 sm:w-40" />
+          <div className="relative h-6 min-w-0 flex-1">
+            {hours.map((hour, index) => (
+              <span
+                key={hour}
+                className={`text-muted-foreground absolute text-xs whitespace-nowrap tabular-nums ${
+                  index === 0 ? "" : index === lastIndex ? "-translate-x-full" : "-translate-x-1/2"
+                }`}
+                style={{ left: `${percentOf(hour * 60)}%` }}
+              >
+                {formatHourLabel(hour)}
+              </span>
+            ))}
+          </div>
+        </div>
 
-      <div className="relative flex-1" style={{ height }}>
-        {/* 1時間ごとの罫線 */}
-        {hours.map((hour) => (
-          <span
-            key={hour}
-            aria-hidden
-            className="border-border absolute inset-x-0 border-t"
-            style={{ top: (hour * 60 - offsetMinutes) * PX_PER_MINUTE }}
-          />
-        ))}
-
-        {showNowLine && (
-          <span
-            aria-hidden
-            className="bg-live absolute inset-x-0 z-10 h-px"
-            style={{ top: (nowMinute - offsetMinutes) * PX_PER_MINUTE }}
-          >
-            <span className="bg-live absolute -top-1 -left-1 size-2 rounded-full" />
-          </span>
-        )}
-
-        <ul>
-          {blocks.map((block) => {
-            const top = (block.startMinute - offsetMinutes) * PX_PER_MINUTE;
-            const blockHeight = (block.endMinute - block.startMinute) * PX_PER_MINUTE;
-            const widthPercent = 100 / block.columnCount;
-            const minutes = Math.round(block.endMinute - block.startMinute);
-            const compact = blockHeight < 34;
+        <ul className="space-y-1.5">
+          {[...rows.entries()].map(([taskId, row]) => {
+            const totalMinutes = row.blocks.reduce(
+              (sum, block) => sum + (block.endMinute - block.startMinute),
+              0,
+            );
 
             return (
-              <li
-                key={block.id}
-                className="absolute overflow-hidden rounded-lg px-2 py-1 text-white"
-                style={{
-                  top,
-                  height: Math.max(blockHeight, 16),
-                  left: `calc(${block.column * widthPercent}% + 2px)`,
-                  width: `calc(${widthPercent}% - 4px)`,
-                  backgroundColor: block.categoryColor,
-                  // 計測中は縁を光らせて、まだ伸びていることを示す
-                  boxShadow: block.running ? "0 0 0 2px var(--live)" : undefined,
-                }}
-                title={`${block.title} ${format(
-                  new Date(new Date(day).setHours(0, block.startMinute, 0, 0)),
-                  "HH:mm",
-                )}〜 ${minutes}分`}
-              >
-                <span
-                  className={`block truncate font-bold ${compact ? "text-[11px]" : "text-xs"}`}
-                  style={{ textShadow: "0 1px 2px rgb(0 0 0 / 0.35)" }}
-                >
-                  {block.continuesFromPreviousDay && "↑ "}
-                  {block.title}
-                  {block.continuesToNextDay && " ↓"}
-                </span>
-                {!compact && (
-                  <span
-                    className="block truncate text-[11px] opacity-90"
-                    style={{ textShadow: "0 1px 2px rgb(0 0 0 / 0.35)" }}
-                  >
-                    {block.running ? "計測中" : `${minutes}分`}
-                  </span>
-                )}
+              <li key={taskId} className="flex items-center">
+                <div className="w-32 shrink-0 pr-3 sm:w-40">
+                  <p className="truncate text-sm font-bold" title={row.title}>
+                    {row.title}
+                  </p>
+                  <p className="text-muted-foreground text-xs tabular-nums">
+                    {formatMinutes(totalMinutes)}
+                  </p>
+                </div>
+
+                <div className="bg-background relative h-11 min-w-0 flex-1 overflow-hidden rounded-xl">
+                  {/* 1時間ごとの区切り */}
+                  {hours.map((hour) => (
+                    <span
+                      key={hour}
+                      aria-hidden
+                      className="border-border absolute inset-y-0 border-l"
+                      style={{ left: `${percentOf(hour * 60)}%` }}
+                    />
+                  ))}
+
+                  {showNowLine && (
+                    <span
+                      aria-hidden
+                      className="bg-live absolute inset-y-0 z-10 w-px"
+                      style={{ left: `${percentOf(nowMinute)}%` }}
+                    />
+                  )}
+
+                  {row.blocks.map((block) => {
+                    const left = percentOf(block.startMinute);
+                    const width = ((block.endMinute - block.startMinute) / spanMinutes) * 100;
+                    const minutes = Math.round(block.endMinute - block.startMinute);
+
+                    return (
+                      <span
+                        key={block.id}
+                        className="absolute inset-y-1.5 flex items-center overflow-hidden rounded-md px-1.5"
+                        style={{
+                          left: `${left}%`,
+                          // 短い記録でも見えるだけの幅を残す
+                          width: `max(${width}%, 8px)`,
+                          backgroundColor: block.categoryColor,
+                          boxShadow: block.running ? "0 0 0 2px var(--live)" : undefined,
+                        }}
+                        title={`${row.title}　${clockLabel(block.startMinute)}〜${
+                          block.running ? "計測中" : clockLabel(block.endMinute)
+                        }（${minutes}分）`}
+                      >
+                        {width > 12 && (
+                          <span
+                            className="truncate text-[11px] font-bold text-white"
+                            style={{ textShadow: "0 1px 2px rgb(0 0 0 / 0.35)" }}
+                          >
+                            {block.continuesFromPreviousDay && "← "}
+                            {clockLabel(block.startMinute)}
+                            {block.continuesToNextDay && " →"}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
               </li>
             );
           })}

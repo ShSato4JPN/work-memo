@@ -60,9 +60,13 @@ export function TaskRow({ task }: { task: TaskListItem }) {
 
   return (
     <li
-      className={`bg-card rounded-3xl px-5 py-4 shadow-sm ring-1 transition ${
-        running ? "ring-live/40" : "ring-black/5 dark:ring-white/5"
-      } ${done ? "opacity-60" : ""}`}
+      className={`rounded-3xl px-5 py-4 shadow-sm ring-1 transition ${
+        done
+          ? "bg-secondary ring-border"
+          : running
+            ? "bg-card ring-live/40"
+            : "bg-card ring-black/5 dark:ring-white/5"
+      }`}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span
@@ -70,9 +74,16 @@ export function TaskRow({ task }: { task: TaskListItem }) {
           style={{ backgroundColor: task.categoryColor }}
           aria-hidden
         />
-        <span className="min-w-0 flex-1 truncate text-base font-bold">{task.title}</span>
+        <span
+          className={`min-w-0 flex-1 truncate text-base font-bold ${
+            done ? "text-muted-foreground line-through" : ""
+          }`}
+        >
+          {task.title}
+        </span>
         {done && (
-          <span className="bg-secondary text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-bold">
+          <span className="bg-primary inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white">
+            <span aria-hidden>✓</span>
             完了
           </span>
         )}
@@ -85,7 +96,11 @@ export function TaskRow({ task }: { task: TaskListItem }) {
             {formatClock(totalSeconds)}
           </span>
         ) : (
-          <span className="shrink-0 text-lg font-extrabold tabular-nums">
+          <span
+            className={`shrink-0 text-lg font-extrabold tabular-nums ${
+              done ? "text-muted-foreground" : ""
+            }`}
+          >
             {formatDuration(totalMin)}
           </span>
         )}
@@ -120,8 +135,9 @@ export function TaskRow({ task }: { task: TaskListItem }) {
             <form action={updateTaskStatus.bind(null, task.id, "doing")}>
               <button
                 type="submit"
-                className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-5 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
+                className="border-primary text-primary hover:bg-primary focus-visible:ring-primary inline-flex items-center gap-1.5 rounded-full border-2 px-5 py-2 text-sm font-bold transition hover:text-white focus-visible:ring-4 focus-visible:outline-none"
               >
+                <span aria-hidden>↩</span>
                 取り消し
               </button>
             </form>
@@ -154,9 +170,10 @@ export function TaskRow({ task }: { task: TaskListItem }) {
               <form action={updateTaskStatus.bind(null, task.id, "done")}>
                 <button
                   type="submit"
-                  className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
+                  className="bg-primary focus-visible:ring-primary inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
                 >
-                  完了にする
+                  <span aria-hidden>✓</span>
+                  完了
                 </button>
               </form>
             </>

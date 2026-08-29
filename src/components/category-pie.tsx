@@ -1,6 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { ChartTooltip } from "@/components/chart-tooltip";
 import type { CategoryTotal } from "@/lib/aggregate";
 
 export function CategoryPie({ totals }: { totals: CategoryTotal[] }) {
@@ -22,7 +23,7 @@ export function CategoryPie({ totals }: { totals: CategoryTotal[] }) {
             <Cell key={item.name} fill={item.color} />
           ))}
         </Pie>
-        <Tooltip formatter={(value) => (typeof value === "number" ? `${value}分` : "")} />
+        <Tooltip content={<ChartTooltip />} cursor={false} />
       </PieChart>
     </ResponsiveContainer>
   );
