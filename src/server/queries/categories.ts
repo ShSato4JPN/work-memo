@@ -9,3 +9,27 @@ export async function getCategories(): Promise<{ id: number; name: string; color
   });
   return categories;
 }
+
+export type CategoryListItem = {
+  id: number;
+  name: string;
+  color: string;
+  /** このカテゴリに属するタスクの数。使われているかどうかの目安 */
+  taskCount: number;
+};
+
+/** カテゴリ管理画面の一覧。並び順は sortOrder */
+export async function getCategoryList(): Promise<CategoryListItem[]> {
+  const categories = await prisma.category.findMany({
+    where: { archived: false },
+    orderBy: { sortOrder: "asc" },
+    include: { _count: { select: { tasks: true } } },
+  });
+
+  return categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    color: category.color,
+    taskCount: category._count.tasks,
+  }));
+}

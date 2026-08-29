@@ -1,6 +1,5 @@
 import { format } from "date-fns";
 import { EntryTimeEditor } from "@/components/entry-time-editor";
-import { startTimer } from "@/server/actions/timer";
 import type { TodayViewEntry } from "@/server/queries/today";
 
 /**
@@ -82,15 +81,7 @@ export function TodayLog({ entries }: { entries: TodayViewEntry[] }) {
               />
             </span>
 
-            <span className="ml-auto flex shrink-0 items-center gap-2">
-              <form action={startTimer.bind(null, entry.taskId)}>
-                <button
-                  type="submit"
-                  className="border-input hover:bg-accent focus-visible:ring-primary rounded-full border px-4 py-2 text-sm font-bold transition focus-visible:ring-4 focus-visible:outline-none"
-                >
-                  再開
-                </button>
-              </form>
+            <span className="ml-auto shrink-0">
               <EntryTimeEditor
                 entryId={entry.id}
                 title={entry.title}
