@@ -89,7 +89,10 @@ export function sumByCategory(
 
     for (const slice of splitEntryByDay(entry, now)) {
       if (!isInRange(slice.date, range)) continue;
-      minutesByCategoryId.set(categoryId, (minutesByCategoryId.get(categoryId) ?? 0) + slice.minutes);
+      minutesByCategoryId.set(
+        categoryId,
+        (minutesByCategoryId.get(categoryId) ?? 0) + slice.minutes,
+      );
     }
   }
 
@@ -102,4 +105,103 @@ export function sumByCategory(
     }))
     .filter((total) => total.minutes > 0)
     .sort((a, b) => b.minutes - a.minutes);
+}
+
+export type DailyTotal = {
+  date: string;
+  byCategory: { categoryId: number; minutes: number }[];
+};
+
+export type EstimateComparison = {
+  taskId: number;
+  title: string;
+  estimateMin: number;
+  actualMin: number;
+  diffMin: number;
+  ratio: number;
+};
+
+/** 割り込み回数。parentEntryId を持ち、期間内に開始したエントリの数 */
+export function countInterruptions(entries: EntryLike[], range: DateRange): number {
+  return entries.filter(
+    (entry) => entry.parentEntryId !== null && isInRange(toDateKey(entry.startedAt), range),
+  ).length;
+}
+
+/** 1エントリあたりの平均継続時間（分）。集中の途切れにくさの指標 */
+export function averageFocusMin(entries: EntryLike[], range: DateRange, now: Date): number {
+  const targets = entries.filter((entry) => isInRange(toDateKey(entry.startedAt), range));
+  if (targets.length === 0) return 0;
+
+  const total = targets.reduce(
+    (sum, entry) => sum + splitEntryByDay(entry, now).reduce((s, slice) => s + slice.minutes, 0),
+    0,
+  );
+  return total / targets.length;
+}
+
+/** 日ごと・カテゴリごとの合計。作業のない日も空配列つきで返す（グラフの横軸を欠けさせないため） */
+export function dailyTotals(
+  entries: EntryLike[],
+  tasks: TaskLike[],
+  range: DateRange,
+  now: Date,
+): DailyTotal[] {
+  const categoryIdByTaskId = new Map(tasks.map((task) => [task.id, task.categoryId]));
+  const byDate = new Map<string, Map<number, number>>();
+
+  for (const entry of entries) {
+    const categoryId = categoryIdByTaskId.get(entry.taskId);
+    if (categoryId === undefined) continue;
+
+    for (const slice of splitEntryByDay(entry, now)) {
+      if (!isInRange(slice.date, range)) continue;
+      const perCategory = byDate.get(slice.date) ?? new Map<number, number>();
+      perCategory.set(categoryId, (perCategory.get(categoryId) ?? 0) + slice.minutes);
+      byDate.set(slice.date, perCategory);
+    }
+  }
+
+  const result: DailyTotal[] = [];
+  let cursor = startOfDay(new Date(`${range.from}T00:00:00`));
+  const last = startOfDay(new Date(`${range.to}T00:00:00`));
+
+  while (cursor <= last) {
+    const dateKey = toDateKey(cursor);
+    const perCategory = byDate.get(dateKey);
+    result.push({
+      date: dateKey,
+      byCategory: perCategory
+        ? [...perCategory.entries()].map(([categoryId, minutes]) => ({ categoryId, minutes }))
+        : [],
+    });
+    cursor = addDays(cursor, 1);
+  }
+
+  return result;
+}
+
+/** 見積もりと実績の比較。見積もり未設定、または実績0のタスクは対象外 */
+export function estimateComparisons(
+  tasks: TaskLike[],
+  entries: EntryLike[],
+  now: Date,
+): EstimateComparison[] {
+  const actuals = taskActualMinutes(entries, now);
+
+  return tasks
+    .filter((task): task is TaskLike & { estimateMin: number } => task.estimateMin !== null)
+    .map((task) => {
+      const actualMin = actuals.get(task.id) ?? 0;
+      return {
+        taskId: task.id,
+        title: task.title,
+        estimateMin: task.estimateMin,
+        actualMin,
+        diffMin: actualMin - task.estimateMin,
+        ratio: actualMin / task.estimateMin,
+      };
+    })
+    .filter((comparison) => comparison.actualMin > 0)
+    .sort((a, b) => b.ratio - a.ratio);
 }
