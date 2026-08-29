@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { revalidateAllViews } from "./revalidate";
 import { createTaskRecord } from "./task-core";
 
 export type TaskStatus = "todo" | "doing" | "done";
@@ -15,7 +15,7 @@ export async function createTask(input: {
 }): Promise<number> {
   const task = await createTaskRecord(prisma, input);
 
-  revalidatePath("/tasks");
+  revalidateAllViews();
   return task.id;
 }
 
@@ -30,6 +30,5 @@ export async function updateTaskStatus(taskId: number, status: TaskStatus): Prom
     },
   });
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateAllViews();
 }

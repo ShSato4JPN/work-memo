@@ -1,9 +1,9 @@
 "use server";
 
 import type { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { createTaskRecord } from "./task-core";
+import { revalidateAllViews } from "./revalidate";
+import { createTaskRecord, toCreateTaskErrorMessage, type CreateTaskResult } from "./task-core";
 
 export async function getRunningEntry(): Promise<{
   id: number;
@@ -44,13 +44,14 @@ async function startTimerInTx(tx: Prisma.TransactionClient, taskId: number): Pro
     data: { taskId, startedAt: now, parentEntryId: running?.id ?? null },
   });
 
-  await tx.task.update({ where: { id: taskId }, data: { status: "doing" } });
+  // done から再開した場合に完了日時が残らないよう、status を戻すときは completedAt も戻す
+  await tx.task.update({ where: { id: taskId }, data: { status: "doing", completedAt: null } });
 }
 
 export async function startTimer(taskId: number): Promise<void> {
   await prisma.$transaction((tx) => startTimerInTx(tx, taskId));
 
-  revalidatePath("/");
+  revalidateAllViews();
 }
 
 export async function stopTimer(): Promise<void> {
@@ -62,21 +63,31 @@ export async function stopTimer(): Promise<void> {
   const endedAt = now > running.startedAt ? now : new Date(running.startedAt.getTime() + 1);
   await prisma.entry.update({ where: { id: running.id }, data: { endedAt } });
 
-  revalidatePath("/");
+  revalidateAllViews();
 }
 
+/**
+ * タスク作成と計測開始。重複タイトル（UNIQUE 制約違反）は通常操作なので、
+ * 例外を投げてエラー画面に落とさず、画面にインライン表示できる結果として返す。
+ */
 export async function createTaskAndStart(input: {
   title: string;
   categoryId: number;
   estimateMin: number | null;
-}): Promise<void> {
-  await prisma.$transaction(async (tx) => {
-    const task = await createTaskRecord(tx, input);
-    await startTimerInTx(tx, task.id);
-  });
+}): Promise<CreateTaskResult> {
+  let taskId: number;
+  try {
+    taskId = await prisma.$transaction(async (tx) => {
+      const task = await createTaskRecord(tx, input);
+      await startTimerInTx(tx, task.id);
+      return task.id;
+    });
+  } catch (error) {
+    return { ok: false, message: toCreateTaskErrorMessage(error) };
+  }
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
+  revalidateAllViews();
+  return { ok: true, taskId };
 }
 
 /** Stop 忘れなどの時刻を後から修正する */
@@ -94,5 +105,5 @@ export async function updateEntryTimes(input: {
     data: { startedAt: input.startedAt, endedAt: input.endedAt },
   });
 
-  revalidatePath("/");
+  revalidateAllViews();
 }

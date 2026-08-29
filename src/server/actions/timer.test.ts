@@ -128,6 +128,53 @@ describe("タイマー操作", () => {
     expect(running?.taskId).toBe(task.id);
   });
 
+  it("createTaskAndStart は同じタイトルのタスクがあるとエラー結果を返し、例外を投げない", async () => {
+    const category = await seedCategory();
+    await prisma.task.create({ data: { title: "重複するタスク", categoryId: category.id } });
+
+    const result = await createTaskAndStart({
+      title: "重複するタスク",
+      categoryId: category.id,
+      estimateMin: null,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.message).toContain("同じ名前のタスク");
+    expect(await getRunningEntry()).toBeNull();
+  });
+
+  it("createTaskAndStart はタスク名が空ならエラー結果を返す", async () => {
+    const category = await seedCategory();
+
+    const result = await createTaskAndStart({
+      title: "   ",
+      categoryId: category.id,
+      estimateMin: null,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.message).toBe("タスク名を入力してください");
+    expect(await prisma.task.count()).toBe(0);
+  });
+
+  it("startTimer は done のタスクを doing に戻すとき completedAt も消す", async () => {
+    const category = await seedCategory();
+    const task = await prisma.task.create({
+      data: {
+        title: "完了済みタスク",
+        categoryId: category.id,
+        status: "done",
+        completedAt: new Date(2026, 7, 28, 18, 0),
+      },
+    });
+
+    await startTimer(task.id);
+
+    const updated = await prisma.task.findUniqueOrThrow({ where: { id: task.id } });
+    expect(updated.status).toBe("doing");
+    expect(updated.completedAt).toBeNull();
+  });
+
   it("updateEntryTimes で Stop 忘れのエントリを後から修正できる", async () => {
     const category = await seedCategory();
     const task = await prisma.task.create({

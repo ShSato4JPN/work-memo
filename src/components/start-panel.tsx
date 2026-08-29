@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,12 @@ export function StartPanel({
   categories: { id: number; name: string; color: string }[];
 }) {
   const [keyword, setKeyword] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  // React は action 完了後に非制御の入力をリセットするため、
+  // 失敗しても入力を失わないよう新規作成フォームの入力は制御コンポーネントにする
+  const [newTitle, setNewTitle] = useState("");
+  const [newCategoryId, setNewCategoryId] = useState(String(categories[0]?.id ?? ""));
+  const [newEstimate, setNewEstimate] = useState("");
 
   const matched = activeTasks.filter((task) => task.title.includes(keyword));
 
@@ -43,24 +50,45 @@ export function StartPanel({
       </ul>
 
       <form
-        action={async (formData: FormData) => {
-          const estimate = formData.get("estimateMin");
-          await createTaskAndStart({
-            title: String(formData.get("title") ?? ""),
-            categoryId: Number(formData.get("categoryId")),
-            estimateMin: estimate ? Number(estimate) : null,
-          });
+        action={async () => {
+          try {
+            const result = await createTaskAndStart({
+              title: newTitle,
+              categoryId: Number(newCategoryId),
+              estimateMin: newEstimate === "" ? null : Number(newEstimate),
+            });
+            if (!result.ok) {
+              // 入力内容は残したままメッセージだけ出す
+              setCreateError(result.message);
+              return;
+            }
+          } catch {
+            setCreateError("タスクを作成できませんでした。もう一度お試しください。");
+            return;
+          }
+          setCreateError(null);
           setKeyword("");
+          setNewTitle("");
+          setNewEstimate("");
         }}
         className="space-y-2 border-t pt-4"
       >
         <Label htmlFor="new-title">新しいタスクを作って開始</Label>
-        <Input id="new-title" name="title" placeholder="タスク名" required />
+        <Input
+          id="new-title"
+          name="title"
+          placeholder="タスク名"
+          value={newTitle}
+          onChange={(event) => setNewTitle(event.target.value)}
+          required
+        />
         <div className="flex gap-2">
           <select
             name="categoryId"
             aria-label="カテゴリ"
             className="border-input h-9 flex-1 rounded-md border px-3 text-sm"
+            value={newCategoryId}
+            onChange={(event) => setNewCategoryId(event.target.value)}
             required
           >
             {categories.map((category) => (
@@ -74,12 +102,14 @@ export function StartPanel({
             type="number"
             min={1}
             placeholder="見積もり(分)"
+            aria-label="見積もり(分)"
             className="w-36"
+            value={newEstimate}
+            onChange={(event) => setNewEstimate(event.target.value)}
           />
         </div>
-        <Button type="submit" className="w-full">
-          作成して Start
-        </Button>
+        <SubmitButton className="w-full">作成して Start</SubmitButton>
+        {createError && <p className="text-destructive text-sm">{createError}</p>}
       </form>
     </div>
   );
