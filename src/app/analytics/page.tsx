@@ -72,16 +72,12 @@ export default async function AnalyticsPage({
         </ul>
       </nav>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Card>
           <p className="text-muted-foreground text-sm">合計時間</p>
           <p className="mt-1 text-3xl font-extrabold tabular-nums">
             {formatDuration(view.totalMinutes)}
           </p>
-        </Card>
-        <Card>
-          <p className="text-muted-foreground text-sm">割り込み回数</p>
-          <p className="mt-1 text-3xl font-extrabold tabular-nums">{view.interruptionCount}回</p>
         </Card>
         <Card>
           <p className="text-muted-foreground text-sm">平均継続時間</p>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { minutesOnDate, splitEntryByDay, type EntryLike } from "./aggregate";
 import { sumByCategory, taskActualMinutes, type CategoryLike, type TaskLike } from "./aggregate";
-import { averageFocusMin, countInterruptions, dailyTotals, estimateComparisons } from "./aggregate";
+import { averageFocusMin, dailyTotals, estimateComparisons } from "./aggregate";
 
 function entry(partial: Partial<EntryLike> & { startedAt: Date }): EntryLike {
   return {
@@ -207,35 +207,6 @@ describe("taskActualMinutes", () => {
     ];
     const result = taskActualMinutes(entries, new Date(2026, 7, 29, 12, 0));
     expect(result.get(10)).toBe(90);
-  });
-});
-
-describe("countInterruptions", () => {
-  it("parentEntryId を持つエントリを期間内で数える", () => {
-    const entries: EntryLike[] = [
-      entry({
-        id: 1,
-        taskId: 10,
-        startedAt: new Date(2026, 7, 29, 9, 0),
-        endedAt: new Date(2026, 7, 29, 9, 30),
-      }),
-      entry({
-        id: 2,
-        taskId: 20,
-        startedAt: new Date(2026, 7, 29, 9, 30),
-        endedAt: new Date(2026, 7, 29, 10, 0),
-        parentEntryId: 1,
-      }),
-      entry({
-        id: 3,
-        taskId: 20,
-        startedAt: new Date(2026, 7, 30, 9, 30),
-        endedAt: new Date(2026, 7, 30, 10, 0),
-        parentEntryId: 1,
-      }),
-    ];
-    expect(countInterruptions(entries, { from: "2026-08-29", to: "2026-08-29" })).toBe(1);
-    expect(countInterruptions(entries, { from: "2026-08-29", to: "2026-08-30" })).toBe(2);
   });
 });
 

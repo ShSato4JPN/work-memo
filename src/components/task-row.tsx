@@ -1,6 +1,9 @@
+"use client";
+
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
 import { updateTaskStatus } from "@/server/actions/task";
-import { startTimer } from "@/server/actions/timer";
+import { startTimer, stopTimer } from "@/server/actions/timer";
 import type { TaskListItem } from "@/server/queries/tasks";
 
 function formatDuration(minutes: number): string {
@@ -11,25 +14,64 @@ function formatDuration(minutes: number): string {
   return rest === 0 ? `${hours}時間` : `${hours}時間${rest}分`;
 }
 
+function formatClock(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const mmss = [minutes, seconds].map((value) => String(value).padStart(2, "0")).join(":");
+  return `${hours}:${mmss}`;
+}
+
+/**
+ * タスク1件の行。開始・停止・完了と経過時間の表示がこの行で完結する。
+ *
+ * 計測中は 1 秒ごとに startedAt からの差分を計算し直す（クライアントに溜め込まない）。
+ * actualMin はサーバが返した時点までの実績なので、計測中はそこに経過分を足して表示する。
+ */
 export function TaskRow({ task }: { task: TaskListItem }) {
-  // 表示は丸めた値なので、超過の判定も丸めた値で行う（+0.4 が「+0分」なのに赤い、を防ぐ）
-  const roundedDiff = task.diffMin === null ? null : Math.round(task.diffMin);
+  const running = task.runningSince !== null;
+  const startedAtMs = task.runningSince?.getTime() ?? null;
+
+  const [sessionSeconds, setSessionSeconds] = useState(() =>
+    startedAtMs === null ? 0 : Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)),
+  );
+
+  useEffect(() => {
+    if (startedAtMs === null) return;
+    const tick = () =>
+      setSessionSeconds(Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)));
+    // 壁時計という外部システムとの同期。SSR 時の値をクライアントの現在時刻へ引き直す
+    // oxlint-disable-next-line react/set-state-in-effect
+    tick();
+    const timerId = setInterval(tick, 1000);
+    return () => clearInterval(timerId);
+  }, [startedAtMs]);
+
+  // サーバ側の actualMin には計測中エントリの「サーバ描画時点まで」が入っている。
+  // 二重に足さないよう、計測中は実績からそのぶんを引いてから経過秒を足し直す。
+  const serverSessionMin =
+    startedAtMs === null ? 0 : Math.max(0, (Date.now() - startedAtMs) / 60000);
+  const baseMin = running ? Math.max(0, task.actualMin - serverSessionMin) : task.actualMin;
+  const totalSeconds = Math.round(baseMin * 60) + (running ? sessionSeconds : 0);
+  const totalMin = totalSeconds / 60;
+
+  const roundedDiff = task.estimateMin === null ? null : Math.round(totalMin - task.estimateMin);
   const over = roundedDiff !== null && roundedDiff > 0;
   const done = task.status === "done";
   const ratio =
     task.estimateMin !== null && task.estimateMin > 0
-      ? Math.min(task.actualMin / task.estimateMin, 1)
+      ? Math.min(totalMin / task.estimateMin, 1)
       : null;
 
   return (
     <li
-      className={`bg-card rounded-3xl px-5 py-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 ${
-        done ? "opacity-60" : ""
-      }`}
+      className={`bg-card rounded-3xl px-5 py-4 shadow-sm ring-1 transition ${
+        running ? "ring-live/40" : "ring-black/5 dark:ring-white/5"
+      } ${done ? "opacity-60" : ""}`}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span
-          className="size-3.5 shrink-0 rounded-full"
+          className={`size-3.5 shrink-0 rounded-full ${running ? "motion-safe:animate-pulse" : ""}`}
           style={{ backgroundColor: task.categoryColor }}
           aria-hidden
         />
@@ -39,9 +81,19 @@ export function TaskRow({ task }: { task: TaskListItem }) {
             完了
           </span>
         )}
-        <span className="shrink-0 text-lg font-extrabold tabular-nums">
-          {formatDuration(task.actualMin)}
-        </span>
+        {running ? (
+          <span
+            className={`shrink-0 text-2xl font-extrabold tabular-nums ${over ? "text-live" : ""}`}
+            suppressHydrationWarning
+            aria-label={`計測中 通算 ${formatClock(totalSeconds)}`}
+          >
+            {formatClock(totalSeconds)}
+          </span>
+        ) : (
+          <span className="shrink-0 text-lg font-extrabold tabular-nums">
+            {formatDuration(totalMin)}
+          </span>
+        )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -68,18 +120,30 @@ export function TaskRow({ task }: { task: TaskListItem }) {
         </span>
 
         <span className="ml-auto flex shrink-0 items-center gap-2">
-          <form action={startTimer.bind(null, task.id)}>
-            <button
-              type="submit"
-              className="bg-primary focus-visible:ring-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
-            >
-              <span
-                aria-hidden
-                className="border-y-[5px] border-l-[8px] border-y-transparent border-l-white"
-              />
-              開始
-            </button>
-          </form>
+          {running ? (
+            <form action={stopTimer.bind(null, task.id)}>
+              <button
+                type="submit"
+                className="bg-live focus-visible:ring-live inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
+              >
+                <span aria-hidden className="size-2.5 rounded-[2px] bg-white" />
+                停止
+              </button>
+            </form>
+          ) : (
+            <form action={startTimer.bind(null, task.id)}>
+              <button
+                type="submit"
+                className="bg-primary focus-visible:ring-primary inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold text-white transition hover:brightness-95 focus-visible:ring-4 focus-visible:outline-none"
+              >
+                <span
+                  aria-hidden
+                  className="border-y-[5px] border-l-[8px] border-y-transparent border-l-white"
+                />
+                開始
+              </button>
+            </form>
+          )}
           {!done && (
             <form action={updateTaskStatus.bind(null, task.id, "done")}>
               <button

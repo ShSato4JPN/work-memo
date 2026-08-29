@@ -133,17 +133,6 @@ export type EstimateComparison = {
 };
 
 /**
- * 割り込み回数。parentEntryId を持ち、期間内に開始したエントリの数。
- * 「期間内に開始した」エントリのみが対象であり、期間内の経過時間で按分しない
- * （日を跨いで期間の前後にはみ出す部分も、開始日が期間内なら丸ごとカウント対象になる）。
- */
-export function countInterruptions(entries: EntryLike[], range: DateRange): number {
-  return entries.filter(
-    (entry) => entry.parentEntryId !== null && isInRange(toDateKey(entry.startedAt), range),
-  ).length;
-}
-
-/**
  * 1エントリあたりの平均継続時間（分）。集中の途切れにくさの指標。
  * 「期間内に開始した」エントリのみが対象であり、期間内の経過時間で按分しない。
  * そのため、期間内に開始して期間外まで続いたエントリは全継続時間が平均に含まれる一方、

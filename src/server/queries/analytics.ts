@@ -2,7 +2,6 @@ import { endOfMonth, endOfWeek, startOfDay, endOfDay, startOfMonth, startOfWeek 
 import { prisma } from "@/lib/prisma";
 import {
   averageFocusMin,
-  countInterruptions,
   dailyTotals,
   estimateComparisons,
   sumByCategory,
@@ -21,7 +20,6 @@ export type AnalyticsView = {
   daily: DailyTotal[];
   categories: { id: number; name: string; color: string }[];
   totalMinutes: number;
-  interruptionCount: number;
   averageFocusMinutes: number;
   estimates: EstimateComparison[];
 };
@@ -93,7 +91,6 @@ export async function getAnalytics(period: Period, now: Date = new Date()): Prom
       color: category.color,
     })),
     totalMinutes: categoryTotals.reduce((sum, total) => sum + total.minutes, 0),
-    interruptionCount: countInterruptions(entries, range),
     averageFocusMinutes: averageFocusMin(entries, range, now),
     estimates: estimateComparisons(tasks, entriesForEstimate, now),
   };

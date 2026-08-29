@@ -54,11 +54,6 @@ export function TodayLog({ entries }: { entries: TodayViewEntry[] }) {
                 日跨ぎ
               </span>
             )}
-            {entry.isInterruption && (
-              <span className="bg-secondary text-muted-foreground shrink-0 rounded-full px-3 py-1 text-xs font-medium">
-                割り込み
-              </span>
-            )}
 
             <span
               className={`shrink-0 text-lg font-extrabold tabular-nums ${

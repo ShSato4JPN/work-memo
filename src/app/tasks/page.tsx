@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { AddTaskForm } from "@/components/add-task-form";
 import { TaskRow } from "@/components/task-row";
 import { getTaskList } from "@/server/queries/tasks";
+import { getCategories } from "@/server/queries/categories";
 import type { TaskStatus } from "@/server/actions/task";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,7 @@ export default async function TasksPage({
 }) {
   const { status } = await searchParams;
   const filter = FILTERS.find((item) => item.value === status)?.value;
-  const tasks = await getTaskList(filter);
+  const [tasks, categories] = await Promise.all([getTaskList(filter), getCategories()]);
 
   return (
     <main className="mx-auto max-w-4xl space-y-5 px-4 py-4 pb-16">
@@ -47,6 +49,8 @@ export default async function TasksPage({
           })}
         </ul>
       </nav>
+
+      <AddTaskForm categories={categories} />
 
       {tasks.length === 0 ? (
         <p className="bg-card text-muted-foreground rounded-3xl px-6 py-10 text-center text-base shadow-sm ring-1 ring-black/5 dark:ring-white/5">

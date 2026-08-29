@@ -10,7 +10,6 @@ export type TodayViewEntry = {
   categoryColor: string;
   startedAt: Date;
   endedAt: Date | null;
-  isInterruption: boolean;
   /** このエントリのうち「今日」に属する分数。今日の合計と必ず一致する */
   todayMinutes: number;
   /** 開始が今日ではない（＝日を跨いで続いてきた）エントリかどうか */
@@ -68,7 +67,6 @@ export async function getTodayView(now: Date = new Date()): Promise<TodayView> {
     categoryColor: entry.task.category.color,
     startedAt: entry.startedAt,
     endedAt: entry.endedAt,
-    isInterruption: entry.parentEntryId !== null,
     todayMinutes: minutesOnDate(
       {
         id: entry.id,

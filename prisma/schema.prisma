@@ -34,14 +34,13 @@ model Task {
   @@map("tasks")
 }
 
-// ⚠️ 重要: このモデルには schema.prisma では表現できない部分ユニークインデックス
-// `idx_entries_single_running` が DB 上に存在する（計測中 = ended_at IS NULL のエントリを
-// 全体で1件に制限する、設計の唯一の DB レベルの保証）。
-// 宣言スキーマに書けないため、`prisma migrate dev` を実行すると差分として
-// `DROP INDEX "idx_entries_single_running"` が生成されうる。
-// マイグレーションを生成したら、必ず生成物を確認し、DROP されていたらその行を消したうえで
-// 以下を手で書き戻すこと:
-//   CREATE UNIQUE INDEX "idx_entries_single_running" ON "entries" ((1)) WHERE "ended_at" IS NULL;
+// 計測中(endedAt が null)のエントリは複数同時に存在しうる。
+// 並行して複数のタスクを計測できるようにするため、かつて存在した部分ユニークインデックス
+// `idx_entries_single_running`（計測中を全体で1件に制限していた）は削除済み。
+//
+// parentEntryId は「別タスクの開始によって中断された」ことを表す列だが、
+// 並行計測では開始しても他タスクが止まらないため、新しい記録には書き込まれない。
+// 過去の記録が持つ事実を消さないよう、列そのものは残している。
 model Entry {
   id            Int       @id @default(autoincrement())
   taskId        Int       @map("task_id")

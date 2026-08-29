@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
 import {
   createTaskAndStart,
+  createTaskOnly,
   getRunningEntry,
   startTimer,
   stopTimer,
@@ -33,11 +34,11 @@ describe("タイマー操作", () => {
 
     await startTimer(task.id);
 
-    const running = await getRunningEntry();
+    const running = await getRunningEntry(task.id);
     expect(running?.taskId).toBe(task.id);
   });
 
-  it("計測中に startTimer すると前のエントリが自動で止まり parentEntryId が入る", async () => {
+  it("別タスクを開始しても先に走っているタスクは止まらない（並行計測）", async () => {
     const category = await seedCategory();
     const first = await prisma.task.create({
       data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
@@ -47,42 +48,45 @@ describe("タイマー操作", () => {
     });
 
     await startTimer(first.id);
-    const firstEntry = await getRunningEntry();
     await startTimer(second.id);
 
-    const previous = await prisma.entry.findUniqueOrThrow({ where: { id: firstEntry!.id } });
-    expect(previous.endedAt).not.toBeNull();
+    // 2件が同時に計測中であること
+    expect(await prisma.entry.count({ where: { endedAt: null } })).toBe(2);
+    expect((await getRunningEntry(first.id))?.taskId).toBe(first.id);
+    expect((await getRunningEntry(second.id))?.taskId).toBe(second.id);
 
-    const running = await getRunningEntry();
-    expect(running?.taskId).toBe(second.id);
-
-    const currentEntry = await prisma.entry.findUniqueOrThrow({ where: { id: running!.id } });
-    expect(currentEntry.parentEntryId).toBe(firstEntry!.id);
+    // 割り込みとしては記録しない
+    const entries = await prisma.entry.findMany();
+    expect(entries.every((entry) => entry.parentEntryId === null)).toBe(true);
   });
 
-  it("計測中のエントリは常に1件を超えない", async () => {
+  it("片方を停止しても、もう片方の計測は続く", async () => {
+    const category = await seedCategory();
+    const first = await prisma.task.create({
+      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+    });
+    const second = await prisma.task.create({
+      data: { title: "レビュー対応", categoryId: category.id, estimateMin: 30 },
+    });
+
+    await startTimer(first.id);
+    await startTimer(second.id);
+    await stopTimer(first.id);
+
+    expect(await getRunningEntry(first.id)).toBeNull();
+    expect((await getRunningEntry(second.id))?.taskId).toBe(second.id);
+  });
+
+  it("同じタスクを連続で startTimer しても二重に計測しない", async () => {
     const category = await seedCategory();
     const task = await prisma.task.create({
       data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
     });
 
     await startTimer(task.id);
+    const first = await getRunningEntry(task.id);
     await startTimer(task.id);
-
-    const runningCount = await prisma.entry.count({ where: { endedAt: null } });
-    expect(runningCount).toBe(1);
-  });
-
-  it("同じタスクを連続で startTimer しても新しいエントリを作らない（自己割り込みを記録しない）", async () => {
-    const category = await seedCategory();
-    const task = await prisma.task.create({
-      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
-    });
-
-    await startTimer(task.id);
-    const first = await getRunningEntry();
-    await startTimer(task.id);
-    const second = await getRunningEntry();
+    const second = await getRunningEntry(task.id);
 
     expect(second?.id).toBe(first!.id);
     expect(await prisma.entry.count({ where: { taskId: task.id } })).toBe(1);
@@ -91,17 +95,32 @@ describe("タイマー操作", () => {
     expect(currentEntry.parentEntryId).toBeNull();
   });
 
-  it("部分ユニークインデックスにより計測中のエントリを直接2件目作ろうとすると拒否される", async () => {
+  it("createTaskOnly はタスクを作るだけで計測を始めない", async () => {
     const category = await seedCategory();
-    const task = await prisma.task.create({
-      data: { title: "認証機能の実装", categoryId: category.id, estimateMin: 60 },
+
+    const result = await createTaskOnly({
+      title: "あとでやるタスク",
+      categoryId: category.id,
+      estimateMin: null,
+    });
+    expect(result.ok).toBe(true);
+
+    const task = await prisma.task.findUniqueOrThrow({ where: { title: "あとでやるタスク" } });
+    expect(task.status).toBe("todo");
+    expect(await getRunningEntry(task.id)).toBeNull();
+  });
+
+  it("createTaskOnly は重複タイトルを例外ではなく結果として返す", async () => {
+    const category = await seedCategory();
+    await prisma.task.create({ data: { title: "重複するタスク", categoryId: category.id } });
+
+    const result = await createTaskOnly({
+      title: "重複するタスク",
+      categoryId: category.id,
+      estimateMin: null,
     });
 
-    await startTimer(task.id);
-
-    await expect(
-      prisma.entry.create({ data: { taskId: task.id, startedAt: new Date() } }),
-    ).rejects.toThrow();
+    expect(result.ok).toBe(false);
   });
 
   it("stopTimer で計測中のエントリがなくなる", async () => {
@@ -111,9 +130,9 @@ describe("タイマー操作", () => {
     });
 
     await startTimer(task.id);
-    await stopTimer();
+    await stopTimer(task.id);
 
-    expect(await getRunningEntry()).toBeNull();
+    expect(await getRunningEntry(task.id)).toBeNull();
   });
 
   it("createTaskAndStart はタスクを作って同時に計測を始める", async () => {
@@ -124,7 +143,7 @@ describe("タイマー操作", () => {
     const task = await prisma.task.findUniqueOrThrow({ where: { title: "新規タスク" } });
     expect(task.status).toBe("doing");
 
-    const running = await getRunningEntry();
+    const running = await getRunningEntry(task.id);
     expect(running?.taskId).toBe(task.id);
   });
 
@@ -140,7 +159,7 @@ describe("タイマー操作", () => {
 
     expect(result.ok).toBe(false);
     expect(result.ok === false && result.message).toContain("同じ名前のタスク");
-    expect(await getRunningEntry()).toBeNull();
+    expect(await prisma.entry.count({ where: { endedAt: null } })).toBe(0);
   });
 
   it("createTaskAndStart はタスク名が空ならエラー結果を返す", async () => {
@@ -182,7 +201,7 @@ describe("タイマー操作", () => {
     });
 
     await startTimer(task.id);
-    const running = await getRunningEntry();
+    const running = await getRunningEntry(task.id);
 
     const startedAt = new Date(2026, 7, 29, 9, 0);
     const endedAt = new Date(2026, 7, 29, 10, 0);
@@ -191,7 +210,7 @@ describe("タイマー操作", () => {
     const updated = await prisma.entry.findUniqueOrThrow({ where: { id: running!.id } });
     expect(updated.startedAt).toEqual(startedAt);
     expect(updated.endedAt).toEqual(endedAt);
-    expect(await getRunningEntry()).toBeNull();
+    expect(await getRunningEntry(task.id)).toBeNull();
   });
 
   it("終了時刻が開始時刻より前なら更新できない", async () => {
@@ -201,7 +220,7 @@ describe("タイマー操作", () => {
     });
 
     await startTimer(task.id);
-    const running = await getRunningEntry();
+    const running = await getRunningEntry(task.id);
 
     await expect(
       updateEntryTimes({
