@@ -952,7 +952,7 @@ const TEST_DB_PATH = "prisma/test.db";
 beforeAll(() => {
   if (existsSync(TEST_DB_PATH)) unlinkSync(TEST_DB_PATH);
   execSync("npx prisma migrate deploy", {
-    env: { ...process.env, DATABASE_URL: "file:./test.db" },
+    env: { ...process.env, DATABASE_URL: "file:./prisma/test.db" },
     stdio: "inherit",
   });
 });
@@ -974,7 +974,7 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
-    env: { DATABASE_URL: "file:./test.db" },
+    env: { DATABASE_URL: "file:./prisma/test.db" },
     fileParallelism: false,
   },
 });
