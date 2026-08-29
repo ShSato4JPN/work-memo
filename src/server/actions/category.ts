@@ -2,14 +2,21 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { CATEGORY_COLOR_PATTERN } from "@/lib/category-colors";
 import { revalidateAllViews } from "./revalidate";
 
 export type CreateCategoryResult =
   | { ok: true; categoryId: number }
   | { ok: false; message: string };
+export type UpdateCategoryResult = { ok: true } | { ok: false; message: string };
 
-/** 色は #rrggbb だけ受け付ける。画面のパレット以外を直接送られても壊れないようにする */
-const COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+/** 名前と色の検証。追加と更新で同じ規則を使う */
+function validate(input: { name: string; color: string }): { name: string } | { message: string } {
+  const name = input.name.trim();
+  if (name === "") return { message: "カテゴリ名を入力してください" };
+  if (!CATEGORY_COLOR_PATTERN.test(input.color)) return { message: "色の指定が不正です" };
+  return { name };
+}
 
 /**
  * カテゴリを追加する。
@@ -20,9 +27,8 @@ export async function createCategory(input: {
   name: string;
   color: string;
 }): Promise<CreateCategoryResult> {
-  const name = input.name.trim();
-  if (name === "") return { ok: false, message: "カテゴリ名を入力してください" };
-  if (!COLOR_PATTERN.test(input.color)) return { ok: false, message: "色の指定が不正です" };
+  const checked = validate(input);
+  if ("message" in checked) return { ok: false, message: checked.message };
 
   try {
     // 末尾に並ぶよう、既存の最大値の次を採番する
@@ -32,7 +38,7 @@ export async function createCategory(input: {
     });
 
     const category = await prisma.category.create({
-      data: { name, color: input.color, sortOrder: (last?.sortOrder ?? 0) + 1 },
+      data: { name: checked.name, color: input.color, sortOrder: (last?.sortOrder ?? 0) + 1 },
     });
 
     revalidateAllViews();
@@ -42,5 +48,35 @@ export async function createCategory(input: {
       return { ok: false, message: "同じ名前のカテゴリがあります" };
     }
     return { ok: false, message: "カテゴリを追加できませんでした" };
+  }
+}
+
+/**
+ * カテゴリの名前と色を変更する。
+ *
+ * タスクは categoryId で紐づいているので、名前を変えても過去の記録や集計は壊れない
+ * （設計上、改名しても過去データが保たれることを意図している）。
+ */
+export async function updateCategory(input: {
+  id: number;
+  name: string;
+  color: string;
+}): Promise<UpdateCategoryResult> {
+  const checked = validate(input);
+  if ("message" in checked) return { ok: false, message: checked.message };
+
+  try {
+    await prisma.category.update({
+      where: { id: input.id },
+      data: { name: checked.name, color: input.color },
+    });
+
+    revalidateAllViews();
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { ok: false, message: "同じ名前のカテゴリがあります" };
+    }
+    return { ok: false, message: "カテゴリを変更できませんでした" };
   }
 }
