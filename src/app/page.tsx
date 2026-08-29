@@ -7,7 +7,8 @@ import { getTodayView } from "@/server/queries/today";
 export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
-  const view = await getTodayView();
+  const now = new Date();
+  const view = await getTodayView(now);
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
@@ -18,6 +19,7 @@ export default async function TodayPage() {
           entryId={view.staleRunning.entryId}
           title={view.staleRunning.title}
           startedAt={view.staleRunning.startedAt}
+          now={now}
         />
       )}
 

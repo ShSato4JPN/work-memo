@@ -10,12 +10,15 @@ export function StaleEntryDialog({
   entryId,
   title,
   startedAt,
+  now,
 }: {
   entryId: number;
   title: string;
   startedAt: Date;
+  now: Date;
 }) {
   const [dismissed, setDismissed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (dismissed) return null;
 
   return (
@@ -32,15 +35,26 @@ export function StaleEntryDialog({
         action={async (formData: FormData) => {
           const value = String(formData.get("endedAt") ?? "");
           if (value === "") return;
-          await updateEntryTimes({ entryId, startedAt, endedAt: new Date(value) });
-          setDismissed(true);
+          const endedAt = new Date(value);
+          if (endedAt <= startedAt) {
+            setError("終了時刻は開始時刻より後にしてください");
+            return;
+          }
+          setError(null);
+          try {
+            await updateEntryTimes({ entryId, startedAt, endedAt });
+            setDismissed(true);
+          } catch {
+            setError("保存に失敗しました。もう一度お試しください。");
+          }
         }}
         className="flex items-end gap-2"
       >
         <Input
           type="datetime-local"
           name="endedAt"
-          defaultValue={format(startedAt, "yyyy-MM-dd'T'HH:mm")}
+          aria-label="実際の終了時刻"
+          defaultValue={format(now, "yyyy-MM-dd'T'HH:mm")}
           required
         />
         <Button type="submit">この時刻で終了にする</Button>
@@ -48,6 +62,8 @@ export function StaleEntryDialog({
           このまま続ける
         </Button>
       </form>
+
+      {error && <p className="text-destructive text-sm">{error}</p>}
     </div>
   );
 }
