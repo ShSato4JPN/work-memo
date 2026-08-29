@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { splitEntryByDay, type EntryLike } from "./aggregate";
+import { sumByCategory, taskActualMinutes, type CategoryLike, type TaskLike } from "./aggregate";
 
 function entry(partial: Partial<EntryLike> & { startedAt: Date }): EntryLike {
   return {
@@ -48,5 +49,53 @@ describe("splitEntryByDay", () => {
   it("開始直後で経過0分なら空配列を返す", () => {
     const at = new Date(2026, 7, 29, 9, 0);
     expect(splitEntryByDay(entry({ startedAt: at, endedAt: null }), at)).toEqual([]);
+  });
+});
+
+const CATEGORIES: CategoryLike[] = [
+  { id: 1, name: "開発", color: "#2563eb" },
+  { id: 2, name: "調査", color: "#f59e0b" },
+];
+
+const TASKS: TaskLike[] = [
+  { id: 10, title: "認証機能の実装", categoryId: 1, estimateMin: 120 },
+  { id: 20, title: "認証ライブラリの調査", categoryId: 2, estimateMin: 60 },
+];
+
+describe("sumByCategory", () => {
+  it("タスク経由でカテゴリ別に合計し、多い順に並べる", () => {
+    const entries: EntryLike[] = [
+      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 10, 0) }),
+      entry({ id: 2, taskId: 20, startedAt: new Date(2026, 7, 29, 10, 0), endedAt: new Date(2026, 7, 29, 12, 0) }),
+    ];
+    const result = sumByCategory(entries, TASKS, CATEGORIES, { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 13, 0));
+    expect(result).toEqual([
+      { categoryId: 2, name: "調査", color: "#f59e0b", minutes: 120 },
+      { categoryId: 1, name: "開発", color: "#2563eb", minutes: 60 },
+    ]);
+  });
+
+  it("期間外のスライスは含めない", () => {
+    const entries: EntryLike[] = [
+      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 28, 23, 30), endedAt: new Date(2026, 7, 29, 0, 30) }),
+    ];
+    const result = sumByCategory(entries, TASKS, CATEGORIES, { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 1, 0));
+    expect(result).toEqual([{ categoryId: 1, name: "開発", color: "#2563eb", minutes: 30 }]);
+  });
+
+  it("合計0のカテゴリは返さない", () => {
+    const result = sumByCategory([], TASKS, CATEGORIES, { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 1, 0));
+    expect(result).toEqual([]);
+  });
+});
+
+describe("taskActualMinutes", () => {
+  it("タスクごとの実績合計を返す", () => {
+    const entries: EntryLike[] = [
+      entry({ id: 1, taskId: 10, startedAt: new Date(2026, 7, 29, 9, 0), endedAt: new Date(2026, 7, 29, 10, 0) }),
+      entry({ id: 2, taskId: 10, startedAt: new Date(2026, 7, 29, 11, 0), endedAt: new Date(2026, 7, 29, 11, 30) }),
+    ];
+    const result = taskActualMinutes(entries, new Date(2026, 7, 29, 12, 0));
+    expect(result.get(10)).toBe(90);
   });
 });
