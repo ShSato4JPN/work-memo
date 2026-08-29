@@ -23,6 +23,34 @@ pnpm lint    # oxlint（ESLint は使わない）
 pnpm format  # oxfmt（Prettier は使わない）
 ```
 
+## バックアップと復元
+
+記録は `prisma/dev.db` というファイル1つに入っているので、消えるときは丸ごと消える。
+`backups/` に1日1ファイルの JSON を残しておく。
+
+```bash
+pnpm backup           # backups/YYYY-MM-DD.json に書き出す
+pnpm restore          # backups/ の全ファイルを取り込む
+pnpm restore --dry-run  # 何が追加されるかだけ見る
+```
+
+`pnpm dev` の前に `pnpm backup` が自動で走るので、アプリを使った日は勝手に控えが残る。
+アプリを開かなかった日も残したい場合は `scripts/launchd/` の設定を使う。
+
+### 設計上の約束
+
+- **復元は足すだけで、消さない。** 既にあるカテゴリ・タスク・記録には触らないので、
+  一部だけ消えた状態から実行しても、まっさらな DB に実行しても同じように使える。
+  何度実行しても結果は変わらない。
+- **突き合わせは自動採番の id ではなく自然キーで行う。** カテゴリは名前、タスクは
+  タイトル、記録は「タスク＋開始時刻」。別々の日のファイルを続けて取り込んでも
+  id が食い違わない。
+- **記録が減る上書きは拒む。** データが消えたあとにバックアップが走ると、空のファイルが
+  その日の控えを潰してしまう。件数が減っていると中止する（意図的なら `--force`）。
+
+`backups/*.json` は作業内容そのものなので既定では git に含めない。
+別マシンにも残したい場合は `.gitignore` の該当行を消す。
+
 ---
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).

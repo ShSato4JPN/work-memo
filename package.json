@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
+    "predev": "tsx scripts/backup.ts",
+    "backup": "tsx scripts/backup.ts",
+    "restore": "tsx scripts/restore.ts",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",

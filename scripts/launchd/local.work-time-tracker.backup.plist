@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  1日1回、決まった時刻にバックアップを走らせる launchd の設定。
+  アプリを開かなかった日でも控えが残るようにするためのもの。
+
+  読み込ませる前に、下の PROJECT_DIR と PNPM_PATH を自分の環境の値に置き換えること。
+    PROJECT_DIR : pwd で出るこのプロジェクトのパス
+    PNPM_PATH   : which pnpm で出るパス
+
+  導入と確認:
+    cp scripts/launchd/local.work-time-tracker.backup.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/local.work-time-tracker.backup.plist
+    launchctl list | grep work-time-tracker
+
+  やめるとき:
+    launchctl unload ~/Library/LaunchAgents/local.work-time-tracker.backup.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>local.work-time-tracker.backup</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>PNPM_PATH</string>
+    <string>backup</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>PROJECT_DIR</string>
+
+  <!-- 毎日 23:50。日付が変わる前にその日の分を残す -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>23</integer>
+    <key>Minute</key>
+    <integer>50</integer>
+  </dict>
+
+  <!-- 指定時刻に Mac が寝ていた場合、起きたときに走らせる -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>PROJECT_DIR/backups/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>PROJECT_DIR/backups/launchd.log</string>
+</dict>
+</plist>
