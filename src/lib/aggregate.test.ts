@@ -121,6 +121,25 @@ describe("sumByCategory", () => {
     );
     expect(result).toEqual([]);
   });
+
+  it("tasks に存在しない taskId の entry は無視する（仕様）", () => {
+    const entries: EntryLike[] = [
+      entry({
+        id: 1,
+        taskId: 999,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 10, 0),
+      }),
+    ];
+    const result = sumByCategory(
+      entries,
+      TASKS,
+      CATEGORIES,
+      { from: "2026-08-29", to: "2026-08-29" },
+      new Date(2026, 7, 29, 11, 0),
+    );
+    expect(result).toEqual([]);
+  });
 });
 
 describe("taskActualMinutes", () => {
@@ -203,6 +222,42 @@ describe("averageFocusMin", () => {
       averageFocusMin([], { from: "2026-08-29", to: "2026-08-29" }, new Date(2026, 7, 29, 11, 0)),
     ).toBe(0);
   });
+
+  it("期間の前日に開始し期間内に終了したエントリは対象外になる", () => {
+    const entries: EntryLike[] = [
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 28, 23, 30),
+        endedAt: new Date(2026, 7, 29, 0, 30),
+      }),
+    ];
+    expect(
+      averageFocusMin(
+        entries,
+        { from: "2026-08-29", to: "2026-08-29" },
+        new Date(2026, 7, 29, 1, 0),
+      ),
+    ).toBe(0);
+  });
+
+  it("期間内に開始し期間外に終了したエントリは全継続時間で平均に入る", () => {
+    const entries: EntryLike[] = [
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 23, 30),
+        endedAt: new Date(2026, 7, 30, 1, 30),
+      }),
+    ];
+    expect(
+      averageFocusMin(
+        entries,
+        { from: "2026-08-29", to: "2026-08-29" },
+        new Date(2026, 7, 30, 2, 0),
+      ),
+    ).toBe(120);
+  });
 });
 
 describe("estimateComparisons", () => {
@@ -240,6 +295,19 @@ describe("estimateComparisons", () => {
   it("実績0のタスクは含めない", () => {
     const tasks: TaskLike[] = [{ id: 10, title: "未着手", categoryId: 1, estimateMin: 60 }];
     expect(estimateComparisons(tasks, [], new Date(2026, 7, 29, 13, 0))).toEqual([]);
+  });
+
+  it("見積もりが0のタスクは含めない（ゼロ除算を避ける）", () => {
+    const tasks: TaskLike[] = [{ id: 10, title: "見積もり0タスク", categoryId: 1, estimateMin: 0 }];
+    const entries: EntryLike[] = [
+      entry({
+        id: 1,
+        taskId: 10,
+        startedAt: new Date(2026, 7, 29, 9, 0),
+        endedAt: new Date(2026, 7, 29, 10, 0),
+      }),
+    ];
+    expect(estimateComparisons(tasks, entries, new Date(2026, 7, 29, 13, 0))).toEqual([]);
   });
 });
 

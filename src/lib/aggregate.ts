@@ -85,6 +85,7 @@ export function sumByCategory(
 
   for (const entry of entries) {
     const categoryId = categoryIdByTaskId.get(entry.taskId);
+    // 対応する task が見つからない entry はカテゴリ不明なので集計対象から除外する（仕様）
     if (categoryId === undefined) continue;
 
     for (const slice of splitEntryByDay(entry, now)) {
@@ -121,14 +122,23 @@ export type EstimateComparison = {
   ratio: number;
 };
 
-/** 割り込み回数。parentEntryId を持ち、期間内に開始したエントリの数 */
+/**
+ * 割り込み回数。parentEntryId を持ち、期間内に開始したエントリの数。
+ * 「期間内に開始した」エントリのみが対象であり、期間内の経過時間で按分しない
+ * （日を跨いで期間の前後にはみ出す部分も、開始日が期間内なら丸ごとカウント対象になる）。
+ */
 export function countInterruptions(entries: EntryLike[], range: DateRange): number {
   return entries.filter(
     (entry) => entry.parentEntryId !== null && isInRange(toDateKey(entry.startedAt), range),
   ).length;
 }
 
-/** 1エントリあたりの平均継続時間（分）。集中の途切れにくさの指標 */
+/**
+ * 1エントリあたりの平均継続時間（分）。集中の途切れにくさの指標。
+ * 「期間内に開始した」エントリのみが対象であり、期間内の経過時間で按分しない。
+ * そのため、期間内に開始して期間外まで続いたエントリは全継続時間が平均に含まれる一方、
+ * 期間の前日に開始し期間内に終了したエントリは対象外になる。
+ */
 export function averageFocusMin(entries: EntryLike[], range: DateRange, now: Date): number {
   const targets = entries.filter((entry) => isInRange(toDateKey(entry.startedAt), range));
   if (targets.length === 0) return 0;
@@ -152,6 +162,7 @@ export function dailyTotals(
 
   for (const entry of entries) {
     const categoryId = categoryIdByTaskId.get(entry.taskId);
+    // 対応する task が見つからない entry はカテゴリ不明なので集計対象から除外する（仕様）
     if (categoryId === undefined) continue;
 
     for (const slice of splitEntryByDay(entry, now)) {
@@ -181,7 +192,7 @@ export function dailyTotals(
   return result;
 }
 
-/** 見積もりと実績の比較。見積もり未設定、または実績0のタスクは対象外 */
+/** 見積もりと実績の比較。見積もり未設定・見積もり0、または実績0のタスクは対象外 */
 export function estimateComparisons(
   tasks: TaskLike[],
   entries: EntryLike[],
@@ -190,7 +201,10 @@ export function estimateComparisons(
   const actuals = taskActualMinutes(entries, now);
 
   return tasks
-    .filter((task): task is TaskLike & { estimateMin: number } => task.estimateMin !== null)
+    .filter(
+      (task): task is TaskLike & { estimateMin: number } =>
+        task.estimateMin !== null && task.estimateMin > 0,
+    )
     .map((task) => {
       const actualMin = actuals.get(task.id) ?? 0;
       return {
