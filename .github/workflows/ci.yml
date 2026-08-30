@@ -43,6 +43,11 @@ jobs:
       - name: フォーマット確認
         run: pnpm format:check
 
+      # LayoutProps などのルート型は .next/types に生成されるまで存在しない。
+      # .next はコミットしていないので、型チェックの前に typegen で作る。
+      - name: 型を生成する
+        run: pnpm exec next typegen
+
       - name: 型チェック
         run: pnpm typecheck
 
