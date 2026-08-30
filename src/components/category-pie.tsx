@@ -1,6 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+
 import { ChartTooltip } from "@/components/chart-tooltip";
 import type { CategoryTotal } from "@/lib/aggregate";
 

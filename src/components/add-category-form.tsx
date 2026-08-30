@@ -1,7 +1,8 @@
 "use client";
 
-import { CategoryColorPicker } from "@/components/category-color-picker";
 import { useRef } from "react";
+
+import { CategoryColorPicker } from "@/components/category-color-picker";
 import { useAddCategoryForm } from "@/hooks/use-add-category-form";
 
 export function AddCategoryForm() {

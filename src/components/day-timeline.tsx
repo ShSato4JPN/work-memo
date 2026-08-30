@@ -16,6 +16,9 @@ const PX_PER_MINUTE = 1;
 const TRACK_WIDTH = MINUTES_PER_DAY * PX_PER_MINUTE;
 const TICK_MINUTES = 10;
 const LABEL_COLUMN_WIDTH = 128;
+const LABEL_SHOW_WIDTH = 44;
+
+const isShowLabel = (width: number) => width > LABEL_SHOW_WIDTH;
 
 const TICKS = Array.from(
   { length: MINUTES_PER_DAY / TICK_MINUTES + 1 },
@@ -99,6 +102,7 @@ export function DayTimeline({ entries, day, now }: Props) {
                   />
                 ))}
 
+                {/* タイムインジケーター */}
                 {nowMinute !== null && (
                   <span
                     aria-hidden
@@ -129,7 +133,7 @@ export function DayTimeline({ entries, day, now }: Props) {
                         block.running ? "計測中" : formatClockLabel(block.endMinute)
                       }（${minutes}分）`}
                     >
-                      {width > 44 && (
+                      {isShowLabel(width) && (
                         <span
                           className="truncate px-1 text-[11px] font-bold text-white"
                           style={{ textShadow: "0 1px 2px rgb(0 0 0 / 0.35)" }}

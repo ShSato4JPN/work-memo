@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+
 import { EntryTimeEditor } from "@/components/entry-time-editor";
 import { formatDuration } from "@/lib/format";
 import type { TodayViewEntry } from "@/server/queries/today";

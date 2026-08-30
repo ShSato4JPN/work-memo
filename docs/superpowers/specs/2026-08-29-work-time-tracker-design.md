@@ -99,12 +99,12 @@ CREATE INDEX idx_tasks_category_id   ON tasks(category_id);
 
 ### 仮説の検証方法
 
-| 知りたいこと | 出し方 |
-|---|---|
-| 時間配分 | `tasks.category_id` 別の合計時間 |
-| 見積もりズレ | `tasks.estimate_min` と task 単位の実績合計の比 |
-| 割り込み | `parent_entry_id` が非 NULL のレコード数、1エントリあたりの平均継続時間 |
-| 実態 | 日 / 週 / 月のタイムラインと積み上げグラフ |
+| 知りたいこと | 出し方                                                                  |
+| ------------ | ----------------------------------------------------------------------- |
+| 時間配分     | `tasks.category_id` 別の合計時間                                        |
+| 見積もりズレ | `tasks.estimate_min` と task 単位の実績合計の比                         |
+| 割り込み     | `parent_entry_id` が非 NULL のレコード数、1エントリあたりの平均継続時間 |
+| 実態         | 日 / 週 / 月のタイムラインと積み上げグラフ                              |
 
 ## 4. 画面と操作フロー
 
@@ -143,15 +143,15 @@ CREATE INDEX idx_tasks_category_id   ON tasks(category_id);
 
 ## 5. 技術スタック
 
-| 領域 | 選定 | 理由 |
-|---|---|---|
-| フレームワーク | Next.js (App Router) + TypeScript | 1プロセスで画面も更新処理も完結する |
-| DB | SQLite + Prisma | ファイル1つで完結。マイグレーションが型安全。Prisma Studio で中身を直接確認できる |
-| データ取得 | Server Components + Server Actions | 一覧・集計はサーバ側で行い、REST API は別途作らない |
-| UI | shadcn/ui + Tailwind CSS | 生成したコンポーネントをプロジェクト内に持つ |
-| グラフ | shadcn/ui chart (Recharts) | 色をテーマ変数で一元管理でき、`categories.color` と噛み合う |
-| Lint / Format | oxlint / oxfmt | ESLint・Prettier は導入しない（`create-next-app --no-eslint`） |
-| テスト | Vitest | |
+| 領域           | 選定                               | 理由                                                                              |
+| -------------- | ---------------------------------- | --------------------------------------------------------------------------------- |
+| フレームワーク | Next.js (App Router) + TypeScript  | 1プロセスで画面も更新処理も完結する                                               |
+| DB             | SQLite + Prisma                    | ファイル1つで完結。マイグレーションが型安全。Prisma Studio で中身を直接確認できる |
+| データ取得     | Server Components + Server Actions | 一覧・集計はサーバ側で行い、REST API は別途作らない                               |
+| UI             | shadcn/ui + Tailwind CSS           | 生成したコンポーネントをプロジェクト内に持つ                                      |
+| グラフ         | shadcn/ui chart (Recharts)         | 色をテーマ変数で一元管理でき、`categories.color` と噛み合う                       |
+| Lint / Format  | oxlint / oxfmt                     | ESLint・Prettier は導入しない（`create-next-app --no-eslint`）                    |
+| テスト         | Vitest                             |                                                                                   |
 
 ### 実装方針
 

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { M_PLUS_Rounded_1c } from "next/font/google";
+
 import { SiteNav } from "@/components/site-nav";
+
 import "./globals.css";
 
 // 丸ゴシック1書体で通す。日本語・英数字・時計まで同じ表情で、読みやすさを最優先にする。

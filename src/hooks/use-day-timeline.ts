@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
+
 import { useNow } from "@/hooks/use-now";
 import {
   groupBlocksByTask,

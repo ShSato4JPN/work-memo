@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { formatClock, formatClockLabel, formatDiff, formatDuration } from "@/lib/format";
 
 describe("formatDuration", () => {

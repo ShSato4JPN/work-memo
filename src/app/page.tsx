@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { formatDuration } from "@/lib/format";
+
 import { DayTimeline } from "@/components/day-timeline";
 import { StaleEntryDialog } from "@/components/stale-entry-dialog";
 import { TodayLog } from "@/components/today-log";
+import { formatDuration } from "@/lib/format";
 import { getTodayView } from "@/server/queries/today";
 
 export const dynamic = "force-dynamic";

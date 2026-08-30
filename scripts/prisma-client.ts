@@ -1,5 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { existsSync } from "node:fs";
+
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "@prisma/client";
 
 /**
  * スクリプトから使う Prisma クライアント。
@@ -9,7 +11,8 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
  * 単発のプロセスとして動くので、開発時の使い回し（globalThis へのキャッシュ）が要らない。
  */
 export function createPrismaClient(): PrismaClient {
-  process.loadEnvFile(".env");
+  // .env が無い環境（CI・コンテナ）では、環境変数が直接渡されている前提で進む
+  if (existsSync(".env")) process.loadEnvFile(".env");
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL が設定されていません（.env を確認してください）");
 

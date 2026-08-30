@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import { useActionState } from "@/hooks/use-action-state";
 import { CATEGORY_PALETTE } from "@/lib/category-colors";
 import { createCategory } from "@/server/actions/category";

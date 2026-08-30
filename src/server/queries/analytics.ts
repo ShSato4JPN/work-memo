@@ -1,5 +1,5 @@
 import { endOfMonth, endOfWeek, startOfDay, endOfDay, startOfMonth, startOfWeek } from "date-fns";
-import { prisma } from "@/lib/prisma";
+
 import {
   averageFocusMin,
   dailyTotals,
@@ -15,6 +15,7 @@ import {
   type EstimateSummary,
   type UnestimatedWork,
 } from "@/lib/aggregate";
+import { prisma } from "@/lib/prisma";
 
 export type Period = "day" | "week" | "month";
 

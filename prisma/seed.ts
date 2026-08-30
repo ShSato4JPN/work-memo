@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "@prisma/client";
 
 // Prisma 7 では datasource の url をスキーマに書けなくなったため、
 // PrismaClient にドライバアダプタを明示的に渡す必要がある。

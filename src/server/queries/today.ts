@@ -1,5 +1,5 @@
 import { differenceInHours, endOfDay, startOfDay } from "date-fns";
-import { prisma } from "@/lib/prisma";
+
 import {
   minutesOnDate,
   sumByCategory,
@@ -7,6 +7,7 @@ import {
   unionMinutes,
   type CategoryTotal,
 } from "@/lib/aggregate";
+import { prisma } from "@/lib/prisma";
 
 export type TodayViewEntry = {
   id: number;

@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  push:
+
+# 同じブランチに続けて push したとき、古い実行を打ち切る。
+# 結果が出るころには次のコミットに追い越されているため。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  # .env はコミットしていない（作業内容が入る DB を指すため）。
+  # CI では使い捨ての DB ファイルを環境変数で渡す。
+  # テストは vitest.config.ts が prisma/test.db に差し替えるので、ここでは使われない。
+  DATABASE_URL: file:./prisma/ci.db
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpm のバージョンは package.json の packageManager が持っている。
+      # corepack がそれを読むので、CI 側で番号を二重に管理しなくて済む。
+      - run: corepack enable pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # postinstall で prisma generate が走る。better-sqlite3 のビルドも
+      # ここで行われる（package.json の onlyBuiltDependencies で許可済み）。
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: フォーマット確認
+        run: pnpm format:check
+
+      # LayoutProps などのルート型は .next/types に生成されるまで存在しない。
+      # .next はコミットしていないので、型チェックの前に typegen で作る。
+      - name: 型を生成する
+        run: pnpm exec next typegen
+
+      - name: 型チェック
+        run: pnpm typecheck
+
+      # 実際の SQLite に書き込む。setup が prisma/test.db を作り直してから走る
+      - name: テスト
+        run: pnpm test
+
+      - name: ビルド
+        run: pnpm build
+
+  # バックアップと復元はデータを守るための道具なので、単体テストだけでなく
+  # 実際に DB を作って一往復させ、消えたデータが戻ることまで確かめる。
+  backup-restore:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm のバージョンは package.json の packageManager が持っている。
+      # corepack がそれを読むので、CI 側で番号を二重に管理しなくて済む。
+      - run: corepack enable pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: DB を用意して初期データを入れる
+        run: |
+          pnpm exec prisma migrate deploy
+          pnpm exec prisma db seed
+
+      # seed はカテゴリしか作らない。タスクと記録がないと、往復で確かめたい部分
+      # （見積もり・状態・メモ・計測中の記録）が一度も通らないので自分で入れる。
+      - name: タスクと記録を入れる
+        run: |
+          sqlite3 prisma/ci.db <<'SQL'
+          INSERT INTO tasks (title, category_id, estimate_min, status, archived, created_at)
+          VALUES ('CI用のタスク', (SELECT id FROM categories LIMIT 1), 60, 'doing', 0,
+                  '2026-01-01T00:00:00.000+00:00');
+
+          INSERT INTO entries (task_id, started_at, ended_at, note)
+          VALUES ((SELECT id FROM tasks WHERE title = 'CI用のタスク'),
+                  '2026-01-01T01:00:00.000+00:00', '2026-01-01T02:00:00.000+00:00', 'メモ');
+
+          -- 計測中（ended_at が NULL）の記録も往復させる
+          INSERT INTO entries (task_id, started_at, ended_at)
+          VALUES ((SELECT id FROM tasks WHERE title = 'CI用のタスク'),
+                  '2026-01-01T03:00:00.000+00:00', NULL);
+          SQL
+
+      - name: バックアップを取る
+        run: pnpm backup
+
+      - name: データを消しても復元できることを確かめる
+        run: |
+          count() {
+            sqlite3 prisma/ci.db \
+              "select (select count(*) from categories)||'/'||(select count(*) from tasks)||'/'||(select count(*) from entries);"
+          }
+
+          before=$(count)
+          echo "削除前（カテゴリ/タスク/記録）: $before"
+          # 3つとも中身がないと、往復できたことの証明にならない
+          if [ "$before" != "5/1/2" ]; then
+            echo "前提のデータが揃っていない（期待: 5/1/2 / 実際: $before）" >&2
+            exit 1
+          fi
+
+          # 障害を再現する
+          sqlite3 prisma/ci.db "delete from entries; delete from tasks; delete from categories;"
+          echo "削除後: $(count)"
+
+          pnpm restore
+          after=$(count)
+          echo "復元後: $after"
+
+          if [ "$after" != "$before" ]; then
+            echo "復元後の件数が元と一致しない（元: $before / 後: $after）" >&2
+            exit 1
+          fi
+
+          # 件数だけでなく中身も戻っていること。特に計測中の記録（ended_at が NULL）は
+          # 「まだ終わっていない」という事実そのものなので、失われると復元の意味がない。
+          restored=$(sqlite3 prisma/ci.db \
+            "select t.title||'/'||t.estimate_min||'/'||t.status||'/'||ifnull(e.note,'')
+             from tasks t join entries e on e.task_id = t.id where e.note is not null;")
+          if [ "$restored" != "CI用のタスク/60/doing/メモ" ]; then
+            echo "記録の中身が戻っていない: $restored" >&2
+            exit 1
+          fi
+
+          running=$(sqlite3 prisma/ci.db "select count(*) from entries where ended_at is null;")
+          if [ "$running" != "1" ]; then
+            echo "計測中の記録が戻っていない（件数: $running）" >&2
+            exit 1
+          fi
+
+      - name: 二度取り込んでも重複が増えないことを確かめる
+        run: |
+          count() {
+            sqlite3 prisma/ci.db \
+              "select (select count(*) from categories)||'/'||(select count(*) from tasks)||'/'||(select count(*) from entries);"
+          }
+
+          before=$(count)
+          pnpm restore
+          after=$(count)
+
+          if [ "$after" != "$before" ]; then
+            echo "取り込みが冪等でない（元: $before / 後: $after）" >&2
+            exit 1
+          fi
+          echo "冪等（$after のまま）"
+
+      # データが消えたあとにバックアップが走ると、空のファイルがその日の控えを潰す。
+      # この番人が効かなくなるとバックアップ自体が危険物になるので、CI で見張る。
+      - name: 記録が減る上書きを拒むことを確かめる
+        run: |
+          sqlite3 prisma/ci.db "delete from entries; delete from tasks;"
+
+          if pnpm backup; then
+            echo "記録が減っているのにバックアップが上書きされた" >&2
+            exit 1
+          fi
+          echo "中止された（想定どおり）"
