@@ -11,6 +11,7 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import {
   BACKUP_DIR,
   entryKey,
@@ -26,9 +27,7 @@ function readSnapshots(): { fileName: string; snapshot: Snapshot }[] {
     fileNames = sortBackupFileNames(readdirSync(BACKUP_DIR));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new Error(
-        `${BACKUP_DIR}/ がありません。先に pnpm backup を実行してください。`,
-      );
+      throw new Error(`${BACKUP_DIR}/ がありません。先に pnpm backup を実行してください。`);
     }
     throw error;
   }
@@ -39,10 +38,7 @@ function readSnapshots(): { fileName: string; snapshot: Snapshot }[] {
     const filePath = join(BACKUP_DIR, fileName);
     return {
       fileName,
-      snapshot: parseSnapshot(
-        JSON.parse(readFileSync(filePath, "utf8")),
-        filePath,
-      ),
+      snapshot: parseSnapshot(JSON.parse(readFileSync(filePath, "utf8")), filePath),
     };
   });
 }
@@ -65,10 +61,7 @@ async function main() {
   try {
     // いまあるものを先に読み、以降はメモリ上の対応表で突き合わせる
     const categoryIdByName = new Map(
-      (await prisma.category.findMany()).map((category) => [
-        category.name,
-        category.id,
-      ]),
+      (await prisma.category.findMany()).map((category) => [category.name, category.id]),
     );
     const taskIdByTitle = new Map(
       (await prisma.task.findMany()).map((task) => [task.title, task.id]),
@@ -129,8 +122,7 @@ async function main() {
               status: task.status,
               archived: task.archived,
               createdAt: new Date(task.createdAt),
-              completedAt:
-                task.completedAt === null ? null : new Date(task.completedAt),
+              completedAt: task.completedAt === null ? null : new Date(task.completedAt),
             },
           });
           taskIdByTitle.set(task.title, created.id);

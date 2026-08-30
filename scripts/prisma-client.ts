@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
-import { PrismaClient } from "@prisma/client";
+
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "@prisma/client";
 
 /**
  * スクリプトから使う Prisma クライアント。

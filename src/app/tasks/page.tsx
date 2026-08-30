@@ -1,9 +1,10 @@
 import Link from "next/link";
+
 import { AddTaskForm } from "@/components/add-task-form";
 import { TaskRow } from "@/components/task-row";
-import { getTaskList } from "@/server/queries/tasks";
-import { getCategories } from "@/server/queries/categories";
 import type { TaskStatus } from "@/server/actions/task";
+import { getCategories } from "@/server/queries/categories";
+import { getTaskList } from "@/server/queries/tasks";
 
 export const dynamic = "force-dynamic";
 

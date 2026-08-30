@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+
 import { defineConfig, env } from "prisma/config";
 
 // .env は開発者の手元にしかない（gitignore 済み）。CI やコンテナでは環境変数が

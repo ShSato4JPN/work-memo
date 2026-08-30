@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
 import { taskActualMinutes } from "@/lib/aggregate";
+import { prisma } from "@/lib/prisma";
 import type { TaskStatus } from "@/server/actions/task";
 
 export type TaskListItem = {

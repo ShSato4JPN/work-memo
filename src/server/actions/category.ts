@@ -1,8 +1,10 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+
 import { CATEGORY_COLOR_PATTERN } from "@/lib/category-colors";
+import { prisma } from "@/lib/prisma";
+
 import { revalidateAllViews } from "./revalidate";
 
 export type CreateCategoryResult =

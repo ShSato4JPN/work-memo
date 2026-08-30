@@ -57,10 +57,7 @@ export function DayTimeline({ entries, day, now }: Props) {
           <div className="h-6" />
           <ul className="space-y-1">
             {rows.map((row) => (
-              <li
-                key={row.taskId}
-                className="flex h-10 flex-col justify-center"
-              >
+              <li key={row.taskId} className="flex h-10 flex-col justify-center">
                 <p className="truncate text-sm font-bold" title={row.title}>
                   {row.title}
                 </p>
@@ -92,19 +89,14 @@ export function DayTimeline({ entries, day, now }: Props) {
 
           <ul className="space-y-1">
             {rows.map((row) => (
-              <li
-                key={row.taskId}
-                className="bg-background relative h-10 overflow-hidden"
-              >
+              <li key={row.taskId} className="bg-background relative h-10 overflow-hidden">
                 {/* 10分ごとの目盛り。1時間の区切りだけ濃くする */}
                 {TICKS.map((minute) => (
                   <span
                     key={minute}
                     aria-hidden
                     className={`absolute inset-y-0 border-l ${
-                      minute % 60 === 0
-                        ? "border-rule-strong"
-                        : "border-border/60"
+                      minute % 60 === 0 ? "border-rule-strong" : "border-border/60"
                     }`}
                     style={{ left: minute * PX_PER_MINUTE }}
                   />
@@ -120,11 +112,8 @@ export function DayTimeline({ entries, day, now }: Props) {
                 )}
 
                 {row.blocks.map((block) => {
-                  const width =
-                    (block.endMinute - block.startMinute) * PX_PER_MINUTE;
-                  const minutes = Math.round(
-                    block.endMinute - block.startMinute,
-                  );
+                  const width = (block.endMinute - block.startMinute) * PX_PER_MINUTE;
+                  const minutes = Math.round(block.endMinute - block.startMinute);
 
                   return (
                     <span
@@ -138,14 +127,10 @@ export function DayTimeline({ entries, day, now }: Props) {
                         // 短い記録でも目盛りと比べられるだけの幅を残す
                         width: Math.max(width, 3),
                         backgroundColor: block.categoryColor,
-                        boxShadow: block.running
-                          ? "0 0 0 2px var(--live)"
-                          : undefined,
+                        boxShadow: block.running ? "0 0 0 2px var(--live)" : undefined,
                       }}
                       title={`${row.title}　${formatClockLabel(block.startMinute)}〜${
-                        block.running
-                          ? "計測中"
-                          : formatClockLabel(block.endMinute)
+                        block.running ? "計測中" : formatClockLabel(block.endMinute)
                       }（${minutes}分）`}
                     >
                       {isShowLabel(width) && (

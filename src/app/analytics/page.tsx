@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { formatDiff, formatDuration } from "@/lib/format";
+
 import { CategoryPie } from "@/components/category-pie";
 import { DailyStackChart } from "@/components/daily-stack-chart";
+import { formatDiff, formatDuration } from "@/lib/format";
 import { getAnalytics, type Period } from "@/server/queries/analytics";
 
 export const dynamic = "force-dynamic";

@@ -19,16 +19,16 @@ that changed.
 
 ## Checklist
 
-| Check | Look for | Fix |
-|---|---|---|
-| Magic numbers | Bare numbers/strings with unexplained meaning (`44`, `10`, `1440`) | Extract to a named `const` near its use — see `TICK_MINUTES` / `LABEL_SHOW_WIDTH` in `src/components/day-timeline.tsx` |
-| Leftover debug code | `console.log`, commented-out code, temp variables | Delete. `no-console` is only a lint **warning** in `.oxlintrc.json` — `pnpm lint` exits 0 even with one left in, so this needs a human/agent eye |
-| Pure helper defined inside a component | A function in a component body that reads no props/state | Hoist it above the component, next to the other module-level constants (like `TICKS`) |
-| `useCallback` on a dependency-free function | `useCallback(fn, [])` where `fn` uses no props/state | Hoist `fn` outside the component instead. `useCallback` still re-runs a dependency check every render and only pays off when there ARE dependencies |
-| Comment explains WHAT instead of WHY | A comment restating what the next line does | Keep only comments explaining WHY (a constraint, a bug workaround, a non-obvious invariant) — see `src/lib/timeline.ts` for the pattern this repo already follows |
-| Comparison operand order | `THRESHOLD < value` | Prefer `value > THRESHOLD` — the subject reads first |
-| Formatter-only reflow hiding a real change | Reformatted lines (import order, line wraps) mixed into a diff that also changes logic | Fine on its own if `pnpm format:check` requires it; check nothing substantive is hiding inside the reflow |
-| Before calling it done | — | Run `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` |
+| Check                                       | Look for                                                                               | Fix                                                                                                                                                               |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Magic numbers                               | Bare numbers/strings with unexplained meaning (`44`, `10`, `1440`)                     | Extract to a named `const` near its use — see `TICK_MINUTES` / `LABEL_SHOW_WIDTH` in `src/components/day-timeline.tsx`                                            |
+| Leftover debug code                         | `console.log`, commented-out code, temp variables                                      | Delete. `no-console` is only a lint **warning** in `.oxlintrc.json` — `pnpm lint` exits 0 even with one left in, so this needs a human/agent eye                  |
+| Pure helper defined inside a component      | A function in a component body that reads no props/state                               | Hoist it above the component, next to the other module-level constants (like `TICKS`)                                                                             |
+| `useCallback` on a dependency-free function | `useCallback(fn, [])` where `fn` uses no props/state                                   | Hoist `fn` outside the component instead. `useCallback` still re-runs a dependency check every render and only pays off when there ARE dependencies               |
+| Comment explains WHAT instead of WHY        | A comment restating what the next line does                                            | Keep only comments explaining WHY (a constraint, a bug workaround, a non-obvious invariant) — see `src/lib/timeline.ts` for the pattern this repo already follows |
+| Comparison operand order                    | `THRESHOLD < value`                                                                    | Prefer `value > THRESHOLD` — the subject reads first                                                                                                              |
+| Formatter-only reflow hiding a real change  | Reformatted lines (import order, line wraps) mixed into a diff that also changes logic | Fine on its own if `pnpm format:check` requires it; check nothing substantive is hiding inside the reflow                                                         |
+| Before calling it done                      | —                                                                                      | Run `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test`                                                                                               |
 
 ## Common Mistakes
 

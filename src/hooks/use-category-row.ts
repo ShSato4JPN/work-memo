@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import { useActionState } from "@/hooks/use-action-state";
 import { deleteCategory, updateCategory } from "@/server/actions/category";
 import type { CategoryListItem } from "@/server/queries/categories";

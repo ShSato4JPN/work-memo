@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { minutesOnDate, splitEntryByDay, type EntryLike } from "@/lib/aggregate";
 import {
   sumByCategory,

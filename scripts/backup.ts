@@ -10,7 +10,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createPrismaClient } from "./prisma-client";
+
 import {
   BACKUP_DIR,
   isSafeToOverwrite,
@@ -18,6 +18,7 @@ import {
   SNAPSHOT_VERSION,
   type Snapshot,
 } from "./backup-format";
+import { createPrismaClient } from "./prisma-client";
 
 /** ローカルタイムの YYYY-MM-DD。UTC にすると日本時間の朝が前日のファイルになる */
 function todayKey(now: Date): string {

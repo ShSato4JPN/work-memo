@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
 import { ChartTooltip } from "@/components/chart-tooltip";
 import type { DailyTotal } from "@/lib/aggregate";
 
