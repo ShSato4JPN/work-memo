@@ -154,4 +154,10 @@
   .font-mono {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Tailwind のプリフライットはボタンのカーソルを矢印のままにする。
+     クリックできることが見た目で伝わるよう、無効化されていない限り指カーソルにする */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
 }
