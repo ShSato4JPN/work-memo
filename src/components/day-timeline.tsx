@@ -16,6 +16,9 @@ const PX_PER_MINUTE = 1;
 const TRACK_WIDTH = MINUTES_PER_DAY * PX_PER_MINUTE;
 const TICK_MINUTES = 10;
 const LABEL_COLUMN_WIDTH = 128;
+const LABEL_SHOW_WIDTH = 44;
+
+const isShowLabel = (width: number) => width > LABEL_SHOW_WIDTH;
 
 const TICKS = Array.from(
   { length: MINUTES_PER_DAY / TICK_MINUTES + 1 },
@@ -54,7 +57,10 @@ export function DayTimeline({ entries, day, now }: Props) {
           <div className="h-6" />
           <ul className="space-y-1">
             {rows.map((row) => (
-              <li key={row.taskId} className="flex h-10 flex-col justify-center">
+              <li
+                key={row.taskId}
+                className="flex h-10 flex-col justify-center"
+              >
                 <p className="truncate text-sm font-bold" title={row.title}>
                   {row.title}
                 </p>
@@ -86,19 +92,25 @@ export function DayTimeline({ entries, day, now }: Props) {
 
           <ul className="space-y-1">
             {rows.map((row) => (
-              <li key={row.taskId} className="bg-background relative h-10 overflow-hidden">
+              <li
+                key={row.taskId}
+                className="bg-background relative h-10 overflow-hidden"
+              >
                 {/* 10分ごとの目盛り。1時間の区切りだけ濃くする */}
                 {TICKS.map((minute) => (
                   <span
                     key={minute}
                     aria-hidden
                     className={`absolute inset-y-0 border-l ${
-                      minute % 60 === 0 ? "border-rule-strong" : "border-border/60"
+                      minute % 60 === 0
+                        ? "border-rule-strong"
+                        : "border-border/60"
                     }`}
                     style={{ left: minute * PX_PER_MINUTE }}
                   />
                 ))}
 
+                {/* タイムインジケーター */}
                 {nowMinute !== null && (
                   <span
                     aria-hidden
@@ -108,8 +120,11 @@ export function DayTimeline({ entries, day, now }: Props) {
                 )}
 
                 {row.blocks.map((block) => {
-                  const width = (block.endMinute - block.startMinute) * PX_PER_MINUTE;
-                  const minutes = Math.round(block.endMinute - block.startMinute);
+                  const width =
+                    (block.endMinute - block.startMinute) * PX_PER_MINUTE;
+                  const minutes = Math.round(
+                    block.endMinute - block.startMinute,
+                  );
 
                   return (
                     <span
@@ -123,13 +138,17 @@ export function DayTimeline({ entries, day, now }: Props) {
                         // 短い記録でも目盛りと比べられるだけの幅を残す
                         width: Math.max(width, 3),
                         backgroundColor: block.categoryColor,
-                        boxShadow: block.running ? "0 0 0 2px var(--live)" : undefined,
+                        boxShadow: block.running
+                          ? "0 0 0 2px var(--live)"
+                          : undefined,
                       }}
                       title={`${row.title}　${formatClockLabel(block.startMinute)}〜${
-                        block.running ? "計測中" : formatClockLabel(block.endMinute)
+                        block.running
+                          ? "計測中"
+                          : formatClockLabel(block.endMinute)
                       }（${minutes}分）`}
                     >
-                      {width > 44 && (
+                      {isShowLabel(width) && (
                         <span
                           className="truncate px-1 text-[11px] font-bold text-white"
                           style={{ textShadow: "0 1px 2px rgb(0 0 0 / 0.35)" }}
