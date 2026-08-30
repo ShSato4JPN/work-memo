@@ -2,13 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
 
 # 同じブランチに続けて push したとき、古い実行を打ち切る。
 # 結果が出るころには次のコミットに追い越されているため。
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -22,9 +20,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      # pnpm のバージョンは package.json の packageManager が持っている。
+      # corepack がそれを読むので、CI 側で番号を二重に管理しなくて済む。
+      - run: corepack enable pnpm
 
       - uses: actions/setup-node@v4
         with:
@@ -60,7 +61,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      # pnpm のバージョンは package.json の packageManager が持っている。
+      # corepack がそれを読むので、CI 側で番号を二重に管理しなくて済む。
+      - run: corepack enable pnpm
 
       - uses: actions/setup-node@v4
         with:
