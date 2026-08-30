@@ -11,7 +11,6 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createPrismaClient } from "./prisma-client";
 import {
   BACKUP_DIR,
   entryKey,
@@ -19,6 +18,7 @@ import {
   sortBackupFileNames,
   type Snapshot,
 } from "./backup-format";
+import { createPrismaClient } from "./prisma-client";
 
 function readSnapshots(): { fileName: string; snapshot: Snapshot }[] {
   let fileNames: string[];
@@ -26,7 +26,9 @@ function readSnapshots(): { fileName: string; snapshot: Snapshot }[] {
     fileNames = sortBackupFileNames(readdirSync(BACKUP_DIR));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new Error(`${BACKUP_DIR}/ がありません。先に pnpm backup を実行してください。`);
+      throw new Error(
+        `${BACKUP_DIR}/ がありません。先に pnpm backup を実行してください。`,
+      );
     }
     throw error;
   }
@@ -37,7 +39,10 @@ function readSnapshots(): { fileName: string; snapshot: Snapshot }[] {
     const filePath = join(BACKUP_DIR, fileName);
     return {
       fileName,
-      snapshot: parseSnapshot(JSON.parse(readFileSync(filePath, "utf8")), filePath),
+      snapshot: parseSnapshot(
+        JSON.parse(readFileSync(filePath, "utf8")),
+        filePath,
+      ),
     };
   });
 }
@@ -55,20 +60,28 @@ async function main() {
   );
 
   const prisma = createPrismaClient();
-  const added = { categories: 0, tasks: 0, entries: 0 };
+  const addedLog = { categories: 0, tasks: 0, entries: 0 };
 
   try {
     // いまあるものを先に読み、以降はメモリ上の対応表で突き合わせる
     const categoryIdByName = new Map(
-      (await prisma.category.findMany()).map((category) => [category.name, category.id]),
+      (await prisma.category.findMany()).map((category) => [
+        category.name,
+        category.id,
+      ]),
     );
     const taskIdByTitle = new Map(
       (await prisma.task.findMany()).map((task) => [task.title, task.id]),
     );
-    const existingEntries = await prisma.entry.findMany({ include: { task: true } });
+    const existingEntries = await prisma.entry.findMany({
+      include: { task: true },
+    });
     const entryIdByKey = new Map(
       existingEntries.map((entry) => [
-        entryKey({ taskTitle: entry.task.title, startedAt: entry.startedAt.toISOString() }),
+        entryKey({
+          taskTitle: entry.task.title,
+          startedAt: entry.startedAt.toISOString(),
+        }),
         entry.id,
       ]),
     );
@@ -92,7 +105,7 @@ async function main() {
           });
           categoryIdByName.set(category.name, created.id);
         }
-        added.categories += 1;
+        addedLog.categories += 1;
         console.log(`  + カテゴリ ${category.name}（${fileName}）`);
       }
 
@@ -116,12 +129,13 @@ async function main() {
               status: task.status,
               archived: task.archived,
               createdAt: new Date(task.createdAt),
-              completedAt: task.completedAt === null ? null : new Date(task.completedAt),
+              completedAt:
+                task.completedAt === null ? null : new Date(task.completedAt),
             },
           });
           taskIdByTitle.set(task.title, created.id);
         }
-        added.tasks += 1;
+        addedLog.tasks += 1;
         console.log(`  + タスク ${task.title}（${fileName}）`);
       }
 
@@ -146,10 +160,13 @@ async function main() {
           });
           entryIdByKey.set(key, created.id);
           if (entry.parentEntry) {
-            parentLinks.push({ childKey: key, parentKey: entryKey(entry.parentEntry) });
+            parentLinks.push({
+              childKey: key,
+              parentKey: entryKey(entry.parentEntry),
+            });
           }
         }
-        added.entries += 1;
+        addedLog.entries += 1;
       }
     }
 
@@ -158,12 +175,15 @@ async function main() {
       const childId = entryIdByKey.get(link.childKey);
       const parentId = entryIdByKey.get(link.parentKey);
       if (childId === undefined || parentId === undefined) continue;
-      await prisma.entry.update({ where: { id: childId }, data: { parentEntryId: parentId } });
+      await prisma.entry.update({
+        where: { id: childId },
+        data: { parentEntryId: parentId },
+      });
     }
 
     const headline = dryRun ? "取り込まれる予定" : "取り込みました";
     console.log(
-      `${headline}: カテゴリ ${added.categories}件 / タスク ${added.tasks}件 / 記録 ${added.entries}件`,
+      `${headline}: カテゴリ ${addedLog.categories}件 / タスク ${addedLog.tasks}件 / 記録 ${addedLog.entries}件`,
     );
     if (dryRun) console.log("--dry-run なので書き込んでいません。");
   } finally {
